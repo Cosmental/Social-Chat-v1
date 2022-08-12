@@ -287,7 +287,7 @@ end
 
 --- Submits a chat message into our chat GUI using the provided parameters
 function SocialChat:CreateChatMessage(speaker : string | Player, message : string, metadata : table?, toPrivateRecipient : Player?)
-    assert((type(speaker) == "string") or (typeof(speaker) == "Instance"), "SocialChat Client Message Error: The provided speaker violates its own typedata. (expected \"string\" or \"Instance\", got "..(typeof(speaker)).."");
+    assert((not speaker) or ((type(speaker) == "string") or (typeof(speaker) == "Instance")), "SocialChat Client Message Error: The provided speaker violates its own typedata. (expected \"string\" or \"Instance\", got "..(typeof(speaker)).."");
     assert(type(message) == "string", "SocialChat Client Message Error: Messages can currently only be formatted as type: \"string\", got "..(type(message)));
     assert((not metadata) or (type(metadata) == "table"), "SocialChat Client Message Error: The provided metadata was not of valid type: \"table\"! (got "..(type(metadata))..")");
     assert((not toPrivateRecipient) or ((typeof(toPrivateRecipient) == "Instance") and (toPrivateRecipient:IsA("Player"))), "SocialChat Client Message Error: The provided private message recipient was not of classtype \"Player\", got "..(typeof(toPrivateRecipient)));
