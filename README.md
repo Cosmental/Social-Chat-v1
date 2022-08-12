@@ -1,6 +1,6 @@
 # About
 
-Social Chat aims to add additional features to Roblox's default Chat System to make it more interactive and better for social interactions! This system is currently maintained by [Cos](https://twitter.com/CosRBX) along with a few additional community resources which can be found in the [**Credits**](https://github.com/Cosmental/Social-Chat/edit/main/README.md#credit) section of this description!
+Social Chat aims to add additional features to Roblox's default Chat System to make it more interactive and better for social interactions! This system is currently maintained by [**Cos**](https://twitter.com/CosRBX) along with a few additional community resources which can be found in the [**Credits**](https://github.com/Cosmental/Social-Chat#credits) section of this description!
 
 In addition, Social chat comes with features such as...
 
