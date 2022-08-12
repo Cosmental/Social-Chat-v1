@@ -34,6 +34,8 @@ In addition, Social chat comes with features such as...
 
 I appreciate all the support that Social Chat has currently recieved and would like to see what creations you guys make with this Chat remake! If you have any additional feature requests or bug reports, feel free to reach me on discord at **Cos#5658** or create a new issue [**here**](https://github.com/Cosmental/Social-Chat/issues/new) (issues are more likely to be seen than direct messages)
 
+Additionally, crediting is prefered but not required!
+
 # Credits
 
 - [SpriteClip](https://devforum.roblox.com/t/spriteclip-sprite-sheet-animation-module/294195) by [nooneisback](https://www.roblox.com/users/24361425/profile)
