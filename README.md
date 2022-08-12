@@ -6,17 +6,19 @@ In addition, Social chat comes with features such as...
 
 😎 **Emoji Support** 😎
 
-![RobloxPlayerBeta_hf9CjmlLt5](https://user-images.githubusercontent.com/52884117/184453154-1411a938-340d-4ba3-ab93-4c73551e8d1e.gif)
+![EmojiGif](https://user-images.githubusercontent.com/52884117/184453154-1411a938-340d-4ba3-ab93-4c73551e8d1e.gif)
 
 👀 **Special Chat Tags** 👀
 
+![ChatTagGif](https://media.giphy.com/media/FmE4avoqlXBychCNhm/giphy.gif)
+
 💬 **Bubble Chat** 💬
 
-![ipYgfQYgnd](https://user-images.githubusercontent.com/52884117/184453190-e093af93-8767-4f3b-8001-b30fa2f9d4fb.gif)
+![BubbleChatGif](https://user-images.githubusercontent.com/52884117/184453190-e093af93-8767-4f3b-8001-b30fa2f9d4fb.gif)
 
 💡 **Unique Phrase Highlights** 💡
 
-![Adz8Q61Ave](https://user-images.githubusercontent.com/52884117/184453271-26cbf145-ae8b-4d61-8b2a-d371532425db.png)
+![PhrasePNG](https://user-images.githubusercontent.com/52884117/184453271-26cbf145-ae8b-4d61-8b2a-d371532425db.png)
 
 ...and much more to come in the foreseeable future!
 
