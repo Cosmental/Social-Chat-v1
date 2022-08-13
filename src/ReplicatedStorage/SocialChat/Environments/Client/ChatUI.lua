@@ -160,9 +160,6 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
 
         game:GetService("RunService").RenderStepped:Wait();
         ChatBox:CaptureFocus();
-        
-        ChatBox.PlaceholderText = ""
-        SetBoxDisplay(false);
     end);
 
     ChatBox.FocusLost:Connect(function(enterPressed : boolean)
@@ -269,6 +266,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
 
         if ((CurrentBounds.X + SpacingBounds.X) >= OriginalBoxSize.X) then
             DisplayLabel.TextXAlignment = Enum.TextXAlignment.Right
+            ChatBox.TextXAlignment = Enum.TextXAlignment.Right
 
             DisplayLabel.TextScaled = false
             DisplayLabel.TextWrapped = false
@@ -277,6 +275,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
             ChatBox.TextWrapped = false
         else
             DisplayLabel.TextXAlignment = Enum.TextXAlignment.Left
+            ChatBox.TextXAlignment = Enum.TextXAlignment.Left
 
             DisplayLabel.TextScaled = true
             DisplayLabel.TextWrapped = true
@@ -290,6 +289,8 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     --// Visibility
     ChatBox.Focused:Connect(function()
         canChatHide = false
+        ChatBox.PlaceholderText = ""
+
         SetChatHidden(false);
     end);
     
