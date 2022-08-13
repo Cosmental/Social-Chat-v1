@@ -2,7 +2,9 @@
 
 Social Chat aims to add additional features to Roblox's default Chat System to make it more interactive and better for social interactions! This system is currently maintained by [**Cos**](https://twitter.com/CosRBX) along with a few additional community resources which can be found in the **Credits** section of this description!
 
-Grab your copy [**here**](https://www.roblox.com/library/10571068319/SocialChat-v1-0-01)!
+![RobloxPlayerBeta_98neWq1o3l](https://user-images.githubusercontent.com/52884117/184506825-c6fcfeca-db5f-4ebc-8476-19684c60354b.gif)
+
+You can grab your copy [**here**](https://www.roblox.com/library/10571068319/SocialChat-v1-0-01)!
 
 # Examples 🎆
 
