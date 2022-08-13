@@ -21,7 +21,7 @@ return {
 	--// CHAT VISUALS
 
 	["Font"] = Enum.Font.SourceSansBold, -- Default chat font
-	["FontSize"] = 18, -- Default font size
+	["FontSize"] = "Default", -- ChatFrame font size (if set to "Default", this will automatically scale with the user's screen size) [18]
 
 	["TextStrokeTransparency"] = 0.8, -- TextLabel Property (applies to all chat labels)
 	["TextTransparency"] = 0, -- TextLabel Property (applies to all chat labels)
@@ -64,7 +64,7 @@ return {
 
 	--// EMOTES
 
-	["ChatEmoteSize"] = 20, -- This is the displayed emote size for our chat frame {x, y}
+	["ChatEmoteSize"] = "Default", -- This is the displayed emote size for our chat frame {x, y} (if default, this will scale automatically) [20]
 	["BubbleEmoteSize"] = 16, -- This is the displayed emote size for Chat Bubbles {x, y}
 	["EmoteSyntax"] = ":", -- This will be the required syntax to use an emote (ex: ":troll:")
 	["DisplayEmoteInfoOnHover"] = true, -- If true, a bubble will appear above our emote upon our client hovering over to display its usage keycode
@@ -77,5 +77,6 @@ return {
 	["FriendJoinMessage"] = "{System} Your friend %s has joined the server.", -- This will be the format text for our join message (if enabled)
 
 	["CreditOutputEnabled"] = true, -- Crediting me is not required but heavily appreciated! If you would like to hide the credits message for any particular reason, set this value to "false"
+	["DebugOutputEnabled"] = false, -- Used for debugging
 
 };

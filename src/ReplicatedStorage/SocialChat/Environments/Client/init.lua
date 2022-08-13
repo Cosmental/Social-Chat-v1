@@ -131,6 +131,9 @@ local BubbleMessagePrefab = script.Presets.FrameBubbleMessage
 local MultiLinePrefab = script.Presets.FrameBubbleMultiLine
 
 local SpaceLength
+local AbsoluteFontSize
+local AbsoluteEmoteSize
+
 local MalformedParamsError = [[
 SocialChat Parameter Violation: Your parameters were malformed!
                                     Expected format:
@@ -161,50 +164,18 @@ function SocialChat:Init(ChatUtilities : table, Remotes : Instance)
 
     ChatSystemEmotes = ChatSystemEmotes(ChatUtilities);
     ChatUI:Init(SocialChat, ChatUtilities, Remotes);
+
+    AbsoluteFontSize = (
+        ((ChatSystemConfigurations.FontSize == "Default") and (ChatBox.TextBounds.Y + 2))
+            or (ChatSystemConfigurations.FontSize)
+    );
+
+    AbsoluteEmoteSize = (
+        ((ChatSystemConfigurations.ChatEmoteSize == "Default") and (AbsoluteFontSize + 2))
+            or (ChatSystemConfigurations.ChatEmoteSize)
+    );
+
     SpaceLength = GetTextSize(" ", ChatFrame);
-
-    --// Chat Bubble Setup
-    local function onCharacterAdded(Character : Model)
-        local NewContainer = BubbleContainerPrefab:Clone();
-        local Head = Character:WaitForChild("Head");
-
-        NewContainer.Adornee = Head
-        NewContainer.Parent = Head
-
-        BubbleContainerLog[Character] = {};
-
-        --// Render distance
-        RunService.RenderStepped:Connect(function()
-            local distanceToCamera = math.floor((Camera.CFrame.Position - Head.Position).Magnitude);
-
-            if (distanceToCamera > ChatSystemConfigurations.MaximumRenderDistance) then
-                for _, BubbleInfo in pairs(BubbleContainerLog[Character]) do
-                    if (not BubbleInfo.IsRendered) then continue; end
-
-                    BubbleInfo.IsRendered = false
-                    HideBubble(BubbleInfo.MessageFrame, BubbleInfo.ObjectList);
-                end
-            else
-                for _, BubbleInfo in pairs(BubbleContainerLog[Character]) do
-                    if (BubbleInfo.IsRendered) then continue; end
-
-                    BubbleInfo.IsRendered = true
-                    ShowBubble(BubbleInfo.MessageFrame, BubbleInfo.ObjectList, BubbleInfo.RealSize);
-                end
-            end
-        end);
-    end
-
-    local function onPlayerAdded(Player : Player)
-        onCharacterAdded(Player.Character or Player.CharacterAdded:Wait());
-        Player.CharacterAdded:Connect(onCharacterAdded);
-    end
-
-    for _, Player in pairs(game.Players:GetPlayers()) do
-        onPlayerAdded(Player);
-    end
-
-    game.Players.PlayerAdded:Connect(onPlayerAdded);
 
     --// Chat Canvas Handling
 	local Layout = ChatFrame:FindFirstChildWhichIsA("UIGridStyleLayout");
@@ -471,8 +442,7 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
     local AgentHead = Agent:FindFirstChild("Head");
     if (not AgentHead) then return; end
 
-    local BubbleContainer = AgentHead:FindFirstChild(BubbleContainerPrefab.Name);
-    if (not BubbleContainer) then return; end
+    local BubbleContainer = ((AgentHead:FindFirstChild(BubbleContainerPrefab.Name)) or (SetupBubbleChat(Agent)));
 
     local MessageContainer = BubbleMessagePrefab:Clone();
     local LineSpaceX = (BubbleContainer.Size.X.Offset - 10); -- We need to subtract 10 from our AbsX size for aesthetic purposes
@@ -500,6 +470,7 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
             if ((AbsoluteBubblePosX + ChatSystemConfigurations.BubbleEmoteSize) > LineSpaceX) then
                 AbsoluteBubblePosX = 0
                 AbsoluteBubbleSizeY += SpaceSize.Y
+
                 CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
             end
 
@@ -513,7 +484,12 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
                     if ((AbsoluteBubblePosX + subRenderChild.AbsoluteSize.X) > LineSpaceX) then
                         AbsoluteBubblePosX = 0
                         AbsoluteBubbleSizeY += SpaceSize.Y
+
                         CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
+                    end
+
+                    if (subRenderChild:IsA("TextLabel")) then
+                        subRenderChild.TextSize = BubbleSizeParameters.FontSize
                     end
         
                     AbsoluteBubblePosX += subRenderChild.AbsoluteSize.X
@@ -542,6 +518,7 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
 
         SpaceLabel.Name = "SPACELABEL_VISUAL"
         SpaceLabel.Text = ""
+
         SpaceLabel.Parent = CurrentLine
         AbsoluteBubblePosX += SpaceSize.X
     end
@@ -686,11 +663,15 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
         local isEmote = ((Word:sub(1, 1) == EmoteSyntax) and (Word:sub(#Word, #Word) == EmoteSyntax));
         local emoteName = (Word:sub(2, #Word - 1));
 
+        if ((ChatSystemConfigurations.DebugOutputEnabled) and (additionalXSpace)) then
+            print("\n\nSOCIALCHAT DEBUG: RENDERING WORD \""..(Word).."\".\n\t\t\t\t\t\t\t\t\tTextScaleX:", TotalScaleX, "\n\t\t\t\t\t\t\t\t\tTextScaleY:", TotalScaleY, "\n\n");
+        end
+
         if ((isEmote) and (ChatSystemEmotes[emoteName]) and (EmotesEnabled)) then -- This word is an emote!
             local EmoteButton = Instance.new("ImageButton");
             local SpriteClipObject = ApplyEmoji(EmoteButton, emoteName);
 
-            if ((TotalScaleX + ChatSystemConfigurations.ChatEmoteSize) > ChatFrame.AbsoluteSize.X) then
+            if ((TotalScaleX + AbsoluteEmoteSize) > ChatFrame.AbsoluteSize.X) then
                 TotalScaleX = 0
                 TotalScaleY += SpaceLength.Y
             end
@@ -707,7 +688,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             EmoteButton.Name = "Emoji_"..(emoteName);
 
             EmoteButton.Position = UDim2.fromOffset(TotalScaleX, TotalScaleY);
-            EmoteButton.Size = UDim2.fromOffset(ChatSystemConfigurations.ChatEmoteSize, ChatSystemConfigurations.ChatEmoteSize);
+            EmoteButton.Size = UDim2.fromOffset(AbsoluteEmoteSize, AbsoluteEmoteSize);
 
             --// Emote Hover Functuality (opt.)
             if (ChatSystemConfigurations.DisplayEmoteInfoOnHover) then
@@ -735,13 +716,13 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
                 HoverInstance.FrameCarrot.BackgroundTransparency = 1
                 HoverInstance.Parent = EmoteButton
 
-                EmoteButton.MouseEnter:Connect(function(X : number, Y : number)
+                EmoteButton.MouseEnter:Connect(function()
                     TweenService:Create(HoverInstance, ChatSystemConfigurations.EmoteHoverTweenInfo, OriginalProperties.MainFrame):Play();
                     TweenService:Create(HoverInstance.FrameCarrot, ChatSystemConfigurations.EmoteHoverTweenInfo, OriginalProperties.Carrot):Play();
                     TweenService:Create(HoverInstance.LabelEmoteName, ChatSystemConfigurations.EmoteHoverTweenInfo, OriginalProperties.Label):Play();
                 end);
 
-                EmoteButton.MouseLeave:Connect(function(X : number, Y : number)
+                EmoteButton.MouseLeave:Connect(function()
                     TweenService:Create(HoverInstance, ChatSystemConfigurations.EmoteHoverTweenInfo, {
                         ["BackgroundTransparency"] = 1,
                         ["Position"] = RealPosition - UDim2.fromOffset(0, 10),
@@ -759,9 +740,9 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             end
 
             table.insert(RenderedObjects, EmoteButton);
-            TotalScaleX += (ChatSystemConfigurations.ChatEmoteSize + SpaceLength.X);
+            TotalScaleX += (AbsoluteEmoteSize + SpaceLength.X);
         elseif (Word:lower() == "/shrug") then
-            local ShrugWordSize = GetTextSize("¯\\_(ツ)_/¯", container);
+            local ShrugWordSize = GetTextSize("¯\\_(ツ)_/¯", container, false, ((parameters) and (parameters.chatMeta)));
             local ShrugLabel = CreateLabel(ShrugWordSize);
 
             if ((TotalScaleX + ShrugWordSize.X) > container.AbsoluteSize.X) then
@@ -776,12 +757,16 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             table.insert(RenderedObjects, ShrugLabel);
             TotalScaleX += ShrugWordSize.X
         else -- This is a normal text word! (probably)
-            local WordSize, doesWordOverflow = GetTextSize(Word, container, true);
+            local WordSize, doesWordOverflow = GetTextSize(Word, container, true, ((parameters) and (parameters.chatMeta)));
             local WordFrame = CreateFrame(WordSize);
 
             if ((TotalScaleX + WordSize.X) > container.AbsoluteSize.X) then
                 TotalScaleX = 0
                 TotalScaleY += SpaceLength.Y
+
+                if (ChatSystemConfigurations.DebugOutputEnabled) then
+                    print("SOCIALCHAT DEBUG: NewLine created for string", text);
+                end
             end
 
             WordFrame.Position = UDim2.fromOffset(
@@ -798,7 +783,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local GraphemePosY = 0
 
             for _, Grapheme in pairs(Word:split("")) do
-                local GraphemeSize = GetTextSize(Grapheme, WordFrame);
+                local GraphemeSize = GetTextSize(Grapheme, WordFrame, false, ((parameters) and (parameters.chatMeta)));
                 local GraphemeLabel = CreateLabel(GraphemeSize);
 
                 if ((GraphemePosX + GraphemeSize.X) > WordSize.X) then
@@ -880,14 +865,15 @@ function GetTextSize(text : string, parentObject : Instance, byGrapheme : boolea
         for _, Grapheme in pairs(text:split("")) do
             local GraphemeSize = TextService:GetTextSize(
                 Grapheme,
-                ((CustomTextParams) and (CustomTextParams.FontSize)) or (ChatSystemConfigurations.FontSize),
+                ((CustomTextParams) and (CustomTextParams.FontSize)) or (AbsoluteFontSize),
                 ((CustomTextParams) and (CustomTextParams.Font)) or (ChatSystemConfigurations.Font),
                 Vector2.new(AbsX, AbsY)
             );
 
             if (GraphemeX >= AbsX) then
                 GraphemeX = 0
-                GraphemeY += SpaceLength.Y
+                GraphemeY += (((CustomTextParams) and (CustomTextParams.FontSize)) or (SpaceLength.Y));
+
                 doesWordOverflow = true
             end
 
@@ -901,7 +887,7 @@ function GetTextSize(text : string, parentObject : Instance, byGrapheme : boolea
     else
         return TextService:GetTextSize(
             text,
-            ((CustomTextParams) and (CustomTextParams.FontSize)) or (ChatSystemConfigurations.FontSize),
+            ((CustomTextParams) and (CustomTextParams.FontSize)) or (AbsoluteFontSize),
             ((CustomTextParams) and (CustomTextParams.Font)) or (ChatSystemConfigurations.Font),
             Vector2.new(AbsX, AbsY)
         );
@@ -961,13 +947,19 @@ end
 function CreateLabel(fromSize : Vector2, CustomFont : Enum.Font?) : TextLabel
     local NewLabel = Instance.new("TextLabel");
     
-    NewLabel.BackgroundTransparency = 1
+    if (ChatSystemConfigurations.DebugOutputEnabled) then
+        NewLabel.BackgroundColor3 = BrickColor.random().Color
+        NewLabel.BackgroundTransparency = 0.8
+    else
+        NewLabel.BackgroundTransparency = 1
+    end
+
     NewLabel.TextStrokeTransparency = 0.8
     NewLabel.TextColor3 = Color3.fromRGB(255, 255, 255);
     NewLabel.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
     
     NewLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NewLabel.TextSize = ChatSystemConfigurations.FontSize
+    NewLabel.TextSize = AbsoluteFontSize
     NewLabel.Font = ((CustomFont) or (ChatSystemConfigurations.Font));
 
     return NewLabel
@@ -977,7 +969,13 @@ end
 function CreateButton(fromSize : Vector2, CustomFont : Enum.Font?) : TextButton
     local NewButton = Instance.new("TextButton");
 
-    NewButton.BackgroundTransparency = 1
+    if (ChatSystemConfigurations.DebugOutputEnabled) then
+        NewButton.BackgroundColor3 = BrickColor.random().Color
+        NewButton.BackgroundTransparency = 0.8
+    else
+        NewButton.BackgroundTransparency = 1
+    end
+
     NewButton.TextStrokeTransparency = 0.8
     NewButton.TextColor3 = Color3.fromRGB(255, 255, 255);
     NewButton.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
@@ -995,7 +993,7 @@ end
 function CreateFrame(fromSize : Vector2) : Frame
     local NewFrame = Instance.new("Frame");
 
-	NewFrame.BackgroundTransparency = 1
+    NewFrame.BackgroundTransparency = 1
 	NewFrame.ClipsDescendants = false
 
 	NewFrame.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
@@ -1026,6 +1024,22 @@ function CreateEmoteHoverObject(emoteName : string)
     end
 
     return NewHoverObject
+end
+
+--- This is purely for error checking
+function verifyParameters(parameters : table)
+    for Key, Value in pairs(parameters) do
+        if ((Key == "emotesEnabled") and (type(Value) ~= "boolean")) then return; end
+        if ((Key == "effectsEnabled") and (type(Value) ~= "boolean")) then return; end
+        
+        if (Key == "chatMeta") then
+            if (type(Value) ~= "table") then return; end
+            if ((Value["Font"]) and (not table.find(Enum.Font:GetEnumItems(), Value.Font))) then return; end
+            if ((Value["FontSize"]) and (type(Value.FontSize) ~= "number")) then return; end
+        end
+    end
+
+    return true
 end
 
 --// Bubble Methods
@@ -1128,20 +1142,45 @@ function DestroyBubble(BubbleObject : Instance)
     BubbleObject.MessageFrame:Destroy();
 end
 
---- This is purely for error checking
-function verifyParameters(parameters : table)
-    for Key, Value in pairs(parameters) do
-        if ((Key == "emotesEnabled") and (type(Value) ~= "boolean")) then return; end
-        if ((Key == "effectsEnabled") and (type(Value) ~= "boolean")) then return; end
-        
-        if (Key == "chatMeta") then
-            if (type(Value) ~= "table") then return; end
-            if ((Value["Font"]) and (not table.find(Enum.Font:GetEnumItems(), Value.Font))) then return; end
-            if ((Value["FontSize"]) and (type(Value.FontSize) ~= "number")) then return; end
-        end
+--- Creates a new chat bubble for the provided Agent
+function SetupBubbleChat(Agent : Model)
+    if (BubbleContainerLog[Agent]) then return; end --> Prevent duplicates!
+
+    local NewContainer = BubbleContainerPrefab:Clone();
+    local Head = Agent:WaitForChild("Head");
+
+    NewContainer.Adornee = Head
+    NewContainer.Parent = Head
+
+    BubbleContainerLog[Agent] = {};
+
+    if (ChatSystemConfigurations.DebugOutputEnabled) then
+        print("SOCIALCHAT DEBUG: Registered new chat bubble data for agent "..(Agent.Name));
     end
 
-    return true
+    --// Render distance
+    RunService.RenderStepped:Connect(function()
+        local distanceToCamera = math.floor((Camera.CFrame.Position - Head.Position).Magnitude);
+
+        if (distanceToCamera > ChatSystemConfigurations.MaximumRenderDistance) then
+            for _, BubbleInfo in pairs(BubbleContainerLog[Agent]) do
+                if (not BubbleInfo.IsRendered) then continue; end
+
+                BubbleInfo.IsRendered = false
+                HideBubble(BubbleInfo.MessageFrame, BubbleInfo.ObjectList);
+            end
+        else
+            for _, BubbleInfo in pairs(BubbleContainerLog[Agent]) do
+                if (BubbleInfo.IsRendered) then continue; end
+
+                BubbleInfo.IsRendered = true
+                ShowBubble(BubbleInfo.MessageFrame, BubbleInfo.ObjectList, BubbleInfo.RealSize);
+            end
+        end
+    end);
+
+    task.wait(.1); -- New Chat Bubbles need some time to resize and fit their new containers
+    return NewContainer
 end
 
 return SocialChat

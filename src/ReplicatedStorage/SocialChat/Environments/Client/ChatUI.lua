@@ -14,6 +14,7 @@ ChatUIMaster.__index = ChatUIMaster
 --// Services
 local UserInputService = game:GetService("UserInputService");
 local TweenService = game:GetService("TweenService");
+local TextService = game:GetService("TextService");
 local RunService = game:GetService("RunService");
 local Chat = game:GetService("Chat");
 
@@ -37,6 +38,8 @@ local DisplayLabel
 local OriginalBoxSize
 
 local RichTextFormat = "<font color =\"rgb(%s, %s, %s)\">%s</font>"
+local ScalingBounds
+local SpacingBounds
 local EmoteSyntax
 
 --// States
@@ -71,6 +74,18 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     ChatEmotes = ChatModules.Emotes
     ChatSettings = ChatModules.Settings
     EmoteSyntax = ChatSettings.EmoteSyntax
+
+    ScalingBounds = ChatBox.TextBounds
+
+    DisplayLabel.TextSize = ScalingBounds.Y
+    ChatBox.TextSize = ScalingBounds.Y
+
+    SpacingBounds = TextService:GetTextSize(
+        " ",
+        ChatBox.UITextSizeConstraint.MaxTextSize,
+        ChatBox.Font,
+        OriginalBoxSize
+    );
 
     if (not Chat:CanUserChatAsync(Player.UserId)) then -- We need to respect client boundries (if any)
         ChatGUI.Visible = false
@@ -245,12 +260,29 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         --// Masking layer text handling
         --\\ This is done because our text tends to go off screen if we dont do this. This is more of an instance hacky tactic
 
-        local CurrentBounds = ChatBox.TextBounds
+        local CurrentBounds = TextService:GetTextSize(
+            ChatBox.Text,
+            ScalingBounds.Y,
+            ChatBox.Font,
+            Vector2.new(4000, 4000)
+        );
 
-        if (CurrentBounds.X >= OriginalBoxSize.X) then
+        if ((CurrentBounds.X + SpacingBounds.X) >= OriginalBoxSize.X) then
             DisplayLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+            DisplayLabel.TextScaled = false
+            DisplayLabel.TextWrapped = false
+
+            ChatBox.TextScaled = false
+            ChatBox.TextWrapped = false
         else
             DisplayLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            DisplayLabel.TextScaled = true
+            DisplayLabel.TextWrapped = true
+
+            ChatBox.TextScaled = true
+            ChatBox.TextWrapped = true
         end
 
     end);
