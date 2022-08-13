@@ -35,20 +35,26 @@ local ChatFrame
 
 local ChatBox
 local DisplayLabel
-local OriginalBoxSize
 
+local OriginalBoxSize
 local RichTextFormat = "<font color =\"rgb(%s, %s, %s)\">%s</font>"
+
+local CustomEmoteList = {};
+local EmoteSyntax
+
 local ScalingBounds
 local SpacingBounds
-local EmoteSyntax
 
 --// States
 local isClientMuted : boolean
 local isMouseOnChat : boolean
 local isChatHidden : boolean
 local isBoxHidden : boolean = true
+
 local canChatHide : boolean
 local focusLostAt : number
+
+local currentEmoteTrack : string?
 
 --// Initialization
 function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRemotes : Instance)
@@ -90,6 +96,20 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     if (not Chat:CanUserChatAsync(Player.UserId)) then -- We need to respect client boundries (if any)
         ChatGUI.Visible = false
         return;
+    end
+
+    --// Emote setup
+    for Key, Data in pairs(ChatSettings.CustomDanceEmotes) do
+        CustomEmoteList[Key] = {};
+
+        for RigType, animationId in pairs(Data) do
+            local animObj = Instance.new("Animation");
+
+            animObj.Name = (Key..(((RigType == Enum.HumanoidRigType.R15) and ("_R15")) or ("_R6")));
+            animObj.AnimationId = animationId
+
+            CustomEmoteList[Key][RigType] = animObj
+        end
     end
 
     --// Topbar Setup
@@ -196,6 +216,57 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
                     "\""..(ChatBox.Text:split(" ")[2]).."\" is not a valid player. You can only send private messages to players in the server!",
                     {
                         ["MessageColor"] = Color3.fromRGB(255, 45, 45)
+                    }
+                );
+            end
+        elseif ((ChatBox.Text:sub(1, 3) == "/e ") and (#ChatBox.Text:split(" ") >= 2)) then
+            local Character = Player.Character
+            if (not Character) then return; end
+
+            local Humanoid = Character:FindFirstChildOfClass("Humanoid");
+            if (not Humanoid) then return; end
+
+            local Animator = Humanoid:FindFirstChildOfClass("Animator");
+            if (not Animator) then return; end
+
+            local emoteName = ChatBox.Text:sub(4);
+            local customEmote = (
+                ((emoteName == "dance") and (pickRandomDanceEmote(Humanoid.RigType)))
+                    or (CustomEmoteList[emoteName][Humanoid.RigType])
+            );
+
+            local doesOwnEmote = (Humanoid.HumanoidDescription:GetEmotes()[emoteName]);
+
+            if (customEmote) then
+                if (Humanoid.FloorMaterial == Enum.Material.Air) then return; end
+
+                local Track = Animator:LoadAnimation(customEmote);
+
+                if (currentEmoteTrack) then
+                    currentEmoteTrack:Stop();
+                end
+
+                Track.Priority = Enum.AnimationPriority.Action4
+                currentEmoteTrack = Track
+                Track:Play();
+
+                Humanoid.Died:Connect(function()
+                    Track:Stop();
+                    currentEmoteTrack = nil
+                end);
+
+                Humanoid.Running:Connect(function()
+                    Track:Stop();
+                    currentEmoteTrack = nil
+                end);
+            elseif (doesOwnEmote) then
+                Humanoid:PlayEmote(emoteName);
+            else
+                ChatController:CreateChatMessage(
+                    nil,
+                    "\""..(emoteName).."\" is not a valid emote!",
+                    {
+                        ["MessageColor"] = Color3.fromRGB(255, 75, 75)
                     }
                 );
             end
@@ -438,6 +509,16 @@ end
 --- Returns a flat color RGB value based on the provided parameters. This is required for rich text because it tends to break with decimals
 function GetFlatColor(OriginalColor : number)
     return math.floor(OriginalColor * 255);
+end
+
+function pickRandomDanceEmote(RigType : Enum.HumanoidRigType) : string
+    local contenders = {
+        CustomEmoteList["dance1"][RigType],
+        CustomEmoteList["dance2"][RigType],
+        CustomEmoteList["dance3"][RigType]
+    };
+
+    return contenders[math.random(#contenders)];
 end
 
 return ChatUIMaster

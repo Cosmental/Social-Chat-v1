@@ -72,6 +72,29 @@ return {
 	--// MISC
 
 	["MaxMessagesAllowed"] = 50, -- Determines how many messages we can log before cleaning up our chat logs
+	["AllowChatDanceEmotes"] = true, -- If true, saying "/e {emoteName}" will play the desired emote (if it exists)
+
+	["CustomDanceEmotes"] = { -- These are extra dance emotes that play when a player says "/e {emoteName}"
+		["dance1"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507771019",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=182435998"
+		},
+
+		["dance2"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507776043",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=182436842"
+		},
+
+		["dance3"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507777268",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=182436935"
+		},
+
+		["wave"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507770239",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=128777973"
+		}
+	},
 
 	["FriendJoinMessagesEnabled"] = true, -- Determines if a friend join message will display whenever a friend joins our client's game
 	["FriendJoinMessage"] = "{System} Your friend %s has joined the server.", -- This will be the format text for our join message (if enabled)
