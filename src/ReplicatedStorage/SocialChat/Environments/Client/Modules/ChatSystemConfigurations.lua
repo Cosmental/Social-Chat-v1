@@ -100,6 +100,6 @@ return {
 	["FriendJoinMessage"] = "{System} Your friend %s has joined the server.", -- This will be the format text for our join message (if enabled)
 
 	["CreditOutputEnabled"] = true, -- Crediting me is not required but heavily appreciated! If you would like to hide the credits message for any particular reason, set this value to "false"
-	["DebugOutputEnabled"] = false, -- Used for debugging
+	["DebugOutputEnabled"] = true, -- Used for debugging
 
 };

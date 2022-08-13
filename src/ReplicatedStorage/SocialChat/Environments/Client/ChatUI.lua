@@ -270,6 +270,8 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
                     }
                 );
             end
+        elseif (ChatBox.Text:sub(1, 9) == "/console") then
+            game.StarterGui:SetCore("DevConsoleVisible", true);
         else
             ChatEvents.ChatReplicate:FireServer(ChatBox.Text);
         end

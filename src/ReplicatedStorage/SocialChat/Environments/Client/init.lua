@@ -783,7 +783,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local GraphemePosY = 0
 
             for _, Grapheme in pairs(Word:split("")) do
-                local GraphemeSize = GetTextSize(Grapheme, WordFrame, false, ((parameters) and (parameters.chatMeta)));
+                local GraphemeSize = GetTextSize(Grapheme, container, false, ((parameters) and (parameters.chatMeta)));
                 local GraphemeLabel = CreateLabel(GraphemeSize);
 
                 if ((GraphemePosX + GraphemeSize.X) > WordSize.X) then
