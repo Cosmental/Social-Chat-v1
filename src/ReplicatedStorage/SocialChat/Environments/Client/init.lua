@@ -786,7 +786,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
                 local GraphemeSize = GetTextSize(Grapheme, container, false, ((parameters) and (parameters.chatMeta)));
                 local GraphemeLabel = CreateLabel(GraphemeSize);
 
-                if ((GraphemePosX + GraphemeSize.X) > WordSize.X) then
+                if ((TotalScaleX + GraphemeSize.X) > container.AbsoluteSize.X) then
                     GraphemePosX = 0
                     GraphemePosY += SpaceLength.Y
                 end
