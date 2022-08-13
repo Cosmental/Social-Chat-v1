@@ -231,7 +231,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
             local emoteName = ChatBox.Text:sub(4);
             local customEmote = (
                 ((emoteName == "dance") and (pickRandomDanceEmote(Humanoid.RigType)))
-                    or (CustomEmoteList[emoteName][Humanoid.RigType])
+                    or ((CustomEmoteList[emoteName]) and (CustomEmoteList[emoteName][Humanoid.RigType]))
             );
 
             local doesOwnEmote = (Humanoid.HumanoidDescription:GetEmotes()[emoteName]);
@@ -259,6 +259,11 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
                     currentEmoteTrack = nil
                 end);
             elseif (doesOwnEmote) then
+                if (currentEmoteTrack) then
+                    currentEmoteTrack:Stop();
+                    currentEmoteTrack = nil
+                end
+
                 Humanoid:PlayEmote(emoteName);
             else
                 ChatController:CreateChatMessage(
