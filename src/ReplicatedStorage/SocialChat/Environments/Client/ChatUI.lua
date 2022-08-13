@@ -188,9 +188,8 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
 
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
-            DisplayLabel.Text = ""
-
             SetBoxDisplay(true);
+
             return;
         end
 
@@ -278,8 +277,6 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         
         ChatBox.PlaceholderText = "Type '/' to chat"
         SetBoxDisplay(true);
-
-        DisplayLabel.Text = ""
         ChatBox.Text = ""
     end);
 
@@ -291,7 +288,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
 
         local NewMaskingText = ""
 
-        for _, Word in pairs(ChatBox.Text:split(" ")) do
+        for Index, Word in pairs(ChatBox.Text:split(" ")) do
             local isEmote = ((Word:sub(1, 1) == EmoteSyntax) and (Word:sub(#Word, #Word) == EmoteSyntax));
 
             if ((isEmote) and (Word:len() > 2) and (ChatEmotes[Word:sub(2, #Word - 1)])) then -- This word is an emote!
@@ -322,6 +319,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
                 NewMaskingText = ((NewMaskingText)..(Word))
             end
 
+            if (Index == #ChatBox.Text:split(" ")) then continue; end
             NewMaskingText = ((NewMaskingText)..(" ")); -- We need to add spacing between words!
         end
 
@@ -337,7 +335,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
             Vector2.new(4000, 4000)
         );
 
-        if ((CurrentBounds.X + SpacingBounds.X) >= OriginalBoxSize.X) then
+        if ((CurrentBounds.X + SpacingBounds.X) >= ChatBox.AbsoluteSize.X) then
             DisplayLabel.TextXAlignment = Enum.TextXAlignment.Right
             ChatBox.TextXAlignment = Enum.TextXAlignment.Right
 
@@ -364,6 +362,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         canChatHide = false
         ChatBox.PlaceholderText = ""
 
+        SetBoxDisplay(false);
         SetChatHidden(false);
     end);
     
