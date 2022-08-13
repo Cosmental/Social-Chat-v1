@@ -35,7 +35,7 @@ Social chat comes with features such as...
 > A: You can report bug reports [here](https://github.com/Cosmental/Social-Chat/issues/new) or add me on discord with your question! (Cos#5856)
 
 **Q: How can I make my own gif emoji?**
-> A: You can make your own gif emoji by creating a spritesheet for it using a [conversion tool](https://ezgif.com/gif-to-sprite) online and following the instructions found [here](https://devforum.roblox.com/t/spriteclip-sprite-sheet-animation-module/294195)! I did not make the SpriteClip module; therefore, I would like to request that any questions regarding gif's are asked within it's own DevForum post.
+> A: You can make your own gif emoji by creating a spritesheet for your desired GIF using a [conversion tool](https://ezgif.com/gif-to-sprite) while following the instructions found [here](https://devforum.roblox.com/t/spriteclip-sprite-sheet-animation-module/294195)! I did not make the SpriteClip module; therefore, I would like to request that any questions regarding gif's are asked on the SpriteClip DevForum [post](https://devforum.roblox.com/t/spriteclip-sprite-sheet-animation-module/294195).
 
 # Author Notes 📝
 
