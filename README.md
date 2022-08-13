@@ -4,7 +4,7 @@ Social Chat aims to add additional features to Roblox's default Chat System to m
 
 ![RobloxPlayerBeta_98neWq1o3l](https://user-images.githubusercontent.com/52884117/184506825-c6fcfeca-db5f-4ebc-8476-19684c60354b.gif)
 
-You can grab your copy [**here**](https://www.roblox.com/library/10571068319/SocialChat-v1-0-01)!
+You can grab your copy [**here**](https://www.roblox.com/library/10571068319/SocialChat-v1-0-01) or see the system [**in action**](https://www.roblox.com/games/10571889167/Social-Chat-TestPlace) for yourself!
 
 # Examples 🎆
 
