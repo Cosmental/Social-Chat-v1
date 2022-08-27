@@ -103,6 +103,7 @@
 ]]--
 
 --// Services
+local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService");
 local TextService = game:GetService("TextService");
 local RunService = game:GetService("RunService");
@@ -447,19 +448,25 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
     local MessageContainer = BubbleMessagePrefab:Clone();
     local LineSpaceX = (BubbleContainer.Size.X.Offset - 10); -- We need to subtract 10 from our AbsX size for aesthetic purposes
 
+    local BubbleTextColor = ((metadata.BubbleTextColor) or (ChatSystemConfigurations.BubbleTextColor));
+    local BubbleTextStrokeColor = ((metadata.BubbleTextStrokeColor) or (ChatSystemConfigurations.BubbleTextStrokeColor));
+
     local BubbleSizeParameters = {
         ["Font"] = ChatSystemConfigurations.BubbleFont,
         ["FontSize"] = ChatSystemConfigurations.BubbleTextSize
     };
 
     local RenderResult = SocialChat:RenderText(message, BubbleContainer, metadata, {
-        ["effectsEnabled"] = false,
-        ["chatMeta"] = BubbleSizeParameters
-    });
+        ["effectsEnabled"] = ChatSystemConfigurations.DoesChatBubbleRenderEffects,
+        ["chatMeta"] = BubbleSizeParameters,
+
+        ["isBubbleChat"] = true -- THIS IS REQUIRED FOR INTENDED BEHAVIOR CHANGES! (DO NOT EDIT)
+    }); 
+
+    local wereSpecialEffectsRendered : boolean = next(RenderResult.Garbage.Effects);
 
     --// Individual word rendering
     local AbsoluteBubblePosX = 0
-    local AbsoluteBubbleSizeY = 0
     local VisibleGraphemes = {};
 
     local SpaceSize = GetTextSize(" ", BubbleContainer.FrameBackground, nil, BubbleSizeParameters);
@@ -469,7 +476,6 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
         if (RenderObject:IsA("ImageButton")) then -- This word is an emote!
             if ((AbsoluteBubblePosX + ChatSystemConfigurations.BubbleEmoteSize) > LineSpaceX) then
                 AbsoluteBubblePosX = 0
-                AbsoluteBubbleSizeY += SpaceSize.Y
 
                 CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
             end
@@ -483,7 +489,6 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
                 for _, subRenderChild in pairs(RenderObject:GetChildren()) do
                     if ((AbsoluteBubblePosX + subRenderChild.AbsoluteSize.X) > LineSpaceX) then
                         AbsoluteBubblePosX = 0
-                        AbsoluteBubbleSizeY += SpaceSize.Y
 
                         CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
                     end
@@ -495,6 +500,11 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
                     AbsoluteBubblePosX += subRenderChild.AbsoluteSize.X
                     subRenderChild.Parent = CurrentLine
 
+                    if (not wereSpecialEffectsRendered) then
+                        subRenderChild.TextColor3 = BubbleTextColor
+                        subRenderChild.TextStrokeColor3 = BubbleTextStrokeColor
+                    end
+
                     table.insert(VisibleGraphemes, subRenderChild);
                 end
 
@@ -502,8 +512,12 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
             else
                 if ((AbsoluteBubblePosX + RenderObject.AbsoluteSize.X) > LineSpaceX) then
                     AbsoluteBubblePosX = 0
-                    AbsoluteBubbleSizeY += SpaceSize.Y
                     CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
+                end
+
+                if (not wereSpecialEffectsRendered) then
+                    RenderObject.TextColor3 = BubbleTextColor
+                    RenderObject.TextStrokeColor3 = BubbleTextStrokeColor
                 end
     
                 AbsoluteBubblePosX += RenderObject.AbsoluteSize.X
@@ -526,8 +540,8 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
     --// Container rendering
     MessageContainer.Size = UDim2.fromOffset(
         (((RenderResult.isMultiLined) and (BubbleContainer.Size.X.Offset)) or (RenderResult.Scale.X + ChatSystemConfigurations.BubbleSizeOffset)),
-        (((RenderResult.isMultiLined) and (RenderResult.Scale.Y + SpaceSize.Y)) or (SpaceSize.Y)) + ChatSystemConfigurations.BubbleSizeOffset
-    );
+        (((RenderResult.isMultiLined) and (RenderResult.Scale.Y + SpaceLength.Y)) or (SpaceSize.Y)) + ChatSystemConfigurations.BubbleSizeOffset
+    ); -- Due to how Billboard GUIs behave, we need to add additional "Y" Length due to the API being intended for 2 dimensional GUI frames
 
     local ContainerBackground = MessageContainer.BackgroundBubble
     local ContainerCarrot = MessageContainer.Carrot
@@ -540,6 +554,11 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
 
     MessageContainer.Name = ("ClientBubbleMessage_"..(Agent.Name));
     MessageContainer.Parent = BubbleContainer.FrameBackground
+
+    if ((metadata) and (metadata.BubbleBackgroundColor)) then
+        MessageContainer.BackgroundBubble.BackgroundColor3 = metadata.BubbleBackgroundColor
+        MessageContainer.Carrot.ImageColor3 = metadata.BubbleBackgroundColor
+    end
 
     --// Log management
     local AgentBubbleLogs = BubbleContainerLog[Agent];
@@ -633,24 +652,53 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
 
     --[[
 
-        metadata structure:
+        Metadata helps define how our rendered text will look like!
 
-        {
+            >> Metadata Structure:
 
-            --// TAG DATA \\--
+            {
 
-            ["TagName"] = "DISPLAYED_CHAT_NAME_HERE",
+                --// TAG DATA \\--
 
-            ["TagColor"] = Color3.fromRGB(255, 255, 255),
-            ["SpeakerColor"] = Color3.fromRGB(255, 0, 0),
-            ["MessageColor"] = Color3.fromRGB(0, 215, 255),
+                ["TagName"] = "DISPLAYED_CHAT_NAME_HERE",
+                ["TagColor"] = Color3.fromRGB(255, 255, 255),
+                ["SpeakerColor"] = Color3.fromRGB(255, 0, 0),
+                ["MessageColor"] = Color3.fromRGB(0, 215, 255),
 
-        };
+                --// BUBBLE CHAT \\--
+
+                ["BubbleTextColor"] = Color3.fromRGB(255, 0, 0),
+                ["BubbleBackgroundColor"] = Color3.fromRGB(255, 255, 255),
+
+            };
+
+        ---------------------------------------------------------------------------------------------------------------
+
+        Parameters are used to change the way chat rendering works!
+
+            >> Parameters Structure:
+
+            {
+                
+                --// CONFIGURATIONS \\--
+
+                ["emotesEnabled"] = boolean?, -- determines if emotes will be rendered within this message
+                ["effectsEnabled"] = boolean?, -- determines if special tag effects will render within this message (eg. rainbow tags etc.)
+
+                --// EXTRA METADATA \\--
+
+                ["chatMeta"] = { -- holds information related to our chat message that will be defaulted into based on rendering params
+
+                    ["Font"] = Enum.Font, -- TextFont applicable (applies to all rendering)
+                    ["FontSize"] = number, -- TextSize applicable (applies to all rendering)
+                
+                };
+
+            };
 
     ]]--
 
     local EmoteCollection = {};
-    local RenderedEffects = {};
     local RenderedObjects = {};
 
     local EmotesEnabled = (((parameters) and (parameters.emotesEnabled)) or (true));
@@ -663,7 +711,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
         local isEmote = ((Word:sub(1, 1) == EmoteSyntax) and (Word:sub(#Word, #Word) == EmoteSyntax));
         local emoteName = (Word:sub(2, #Word - 1));
 
-        if ((ChatSystemConfigurations.DebugOutputEnabled) and (additionalXSpace)) then
+        if (ChatSystemConfigurations.DebugOutputEnabled) then
             print("\n\nSOCIALCHAT DEBUG: RENDERING WORD \""..(Word).."\".\n\t\t\t\t\t\t\t\t\tTextScaleX:", TotalScaleX, "\n\t\t\t\t\t\t\t\t\tTextScaleY:", TotalScaleY, "\n\n");
         end
 
@@ -671,7 +719,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local EmoteButton = Instance.new("ImageButton");
             local SpriteClipObject = ApplyEmoji(EmoteButton, emoteName);
 
-            if ((TotalScaleX + AbsoluteEmoteSize) > ChatFrame.AbsoluteSize.X) then
+            if ((TotalScaleX + AbsoluteEmoteSize) >= ChatFrame.AbsoluteSize.X) then
                 TotalScaleX = 0
                 TotalScaleY += SpaceLength.Y
             end
@@ -745,7 +793,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local ShrugWordSize = GetTextSize("¯\\_(ツ)_/¯", container, false, ((parameters) and (parameters.chatMeta)));
             local ShrugLabel = CreateLabel(ShrugWordSize);
 
-            if ((TotalScaleX + ShrugWordSize.X) > container.AbsoluteSize.X) then
+            if ((TotalScaleX + ShrugWordSize.X) >= container.AbsoluteSize.X) then
                 TotalScaleX = 0
                 TotalScaleY += SpaceLength.Y
             end
@@ -760,23 +808,16 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local WordSize, doesWordOverflow = GetTextSize(Word, container, true, ((parameters) and (parameters.chatMeta)));
             local WordFrame = CreateFrame(WordSize);
 
-            if ((TotalScaleX + WordSize.X) > container.AbsoluteSize.X) then
+            if (((TotalScaleX + WordSize.X) >= container.AbsoluteSize.X) or (doesWordOverflow)) then
                 TotalScaleX = 0
                 TotalScaleY += SpaceLength.Y
 
                 if (ChatSystemConfigurations.DebugOutputEnabled) then
-                    print("SOCIALCHAT DEBUG: NewLine created for string", text);
+                    warn("SOCIALCHAT DEBUG: NewLine created for string", Word);
                 end
             end
 
-            WordFrame.Position = UDim2.fromOffset(
-                (((doesWordOverflow) and (0)) or (TotalScaleX)),
-                TotalScaleY
-            );
-            
-            if (doesWordOverflow) then
-                TotalScaleY += WordSize.Y
-            end
+            WordFrame.Position = UDim2.fromOffset(TotalScaleX, TotalScaleY);
             
             --// Grapheme Rendering
             local GraphemePosX = 0
@@ -807,16 +848,26 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
         TotalScaleX += SpaceLength.X
     end
 
-    if ((metadata) and (metadata.MessageColor) and (EffectRenderingEnabled)) then
-        local LabelEffect = ApplyLabelColor(RenderedObjects, metadata.MessageColor);
+    local isMessageFromBubbleChat : boolean = ((parameters) and (parameters.isBubbleChat));
+    local metaColor = ((metadata)
+        and (((isMessageFromBubbleChat) and (metadata.BubbleTextColor)) -- BubbleChat TextColor
+        or ((not isMessageFromBubbleChat) and (metadata.MessageColor))) -- Default Message Color
+    );
+    
+    local RenderedEffects = {};
+
+    if ((metaColor) and (EffectRenderingEnabled)) then
+        local specialEffect = ApplyLabelColor(RenderedObjects, metaColor);
         
-        if (LabelEffect) then
-            table.insert(RenderedEffects, {
-                ["EffectName"] = metadata.MessageColor,
-                ["Effect"] = LabelEffect
-            });
+        if (specialEffect) then
+            RenderedEffects = {
+                ["EffectName"] = metaColor,
+                ["Effect"] = specialEffect
+            };
         end
     end
+
+    local isMultiLined = (TotalScaleY > 0);
 
     return {
         ["Objects"] = RenderedObjects,
@@ -825,7 +876,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             ["Emotes"] = EmoteCollection
         };
 
-        ["isMultiLined"] = (TotalScaleY > 0),
+        ["isMultiLined"] = isMultiLined,
         ["Scale"] = {
             ["X"] = TotalScaleX,
             ["Y"] = TotalScaleY + SpaceLength.Y
@@ -860,7 +911,7 @@ function GetTextSize(text : string, parentObject : Instance, byGrapheme : boolea
     if (byGrapheme) then
         local doesWordOverflow = false
         local GraphemeX = 0
-        local GraphemeY = 0
+        local GraphemeY = SpaceLength.Y
 
         for _, Grapheme in pairs(text:split("")) do
             local GraphemeSize = TextService:GetTextSize(
@@ -870,14 +921,14 @@ function GetTextSize(text : string, parentObject : Instance, byGrapheme : boolea
                 Vector2.new(AbsX, AbsY)
             );
 
+            GraphemeX += GraphemeSize.X
+
             if (GraphemeX >= AbsX) then
                 GraphemeX = 0
                 GraphemeY += (((CustomTextParams) and (CustomTextParams.FontSize)) or (SpaceLength.Y));
 
                 doesWordOverflow = true
             end
-
-            GraphemeX += GraphemeSize.X
         end
 
         return Vector2.new(
@@ -993,10 +1044,10 @@ end
 function CreateFrame(fromSize : Vector2) : Frame
     local NewFrame = Instance.new("Frame");
 
+	NewFrame.Size = UDim2.fromOffset(fromSize.X, math.max(fromSize.Y, SpaceLength.Y));
     NewFrame.BackgroundTransparency = 1
-	NewFrame.ClipsDescendants = false
+    NewFrame.ClipsDescendants = true
 
-	NewFrame.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
 	return NewFrame
 end
 
@@ -1135,10 +1186,9 @@ function DestroyBubble(BubbleObject : Instance)
         ChatSystemEmotes[CollectedGarbage.Emote].OnEmoteSweeped(CollectedGarbage.EmoteObject, CollectedGarbage.SpriteClip);
     end
 
-    for _, CollectedGarbage in pairs(BubbleObject.GarbageCollection.LabelCollection) do
-        ChatSystemTags[CollectedGarbage.EffectName].OnRemoved(CollectedGarbage.Effect);
-    end
+    local BubbleGarbage = BubbleObject.GarbageCollection.LabelCollection
 
+    ChatSystemTags[BubbleGarbage.EffectName].OnRemoved(BubbleGarbage.Effect);
     BubbleObject.MessageFrame:Destroy();
 end
 
