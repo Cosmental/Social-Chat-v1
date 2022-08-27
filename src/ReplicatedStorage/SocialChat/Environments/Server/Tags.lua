@@ -13,7 +13,7 @@ return {
 			["UserIds"] = {},
 
 			["GroupId"] = 0,
-			["RankRequirement"] = 0,
+			["AcceptedRanks"] = {0},
 		};
 
 		["TagData"] = {
@@ -26,19 +26,16 @@ return {
 
 	["Cos"] = {
 		["Requirements"] = {
-			["UserIds"] = {
-				876817222 -- Cos
-			},
+			["UserIds"] = {},
 
-			["GroupId"] = 0,
-			["RankRequirement"] = 0,
+			["GroupId"] = 4635482,
+			["AcceptedRanks"] = {255},
 		};
 
 		["TagData"] = {
 			["TagName"] = "Creator",
-			
 			["TagColor"] = Color3.fromRGB(255, 35, 35),
-			["SpeakerColor"] = Color3.fromRGB(70, 35, 255)
+			["BubbleTextColor"] = "Rainbow",
 		};
 
 		["Priority"] = 0,

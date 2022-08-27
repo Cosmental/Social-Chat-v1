@@ -41,6 +41,7 @@ return {
 
 	["IsBubbleChatEnabled"] = true, -- Determines if chat bubbles will be used alongside the chat system
 	["IsBubbleTweeningAllowed"] = true, -- Determines if chat bubbles will smoothly tween when being destroyed/created
+	["DoesChatBubbleRenderEffects"] = true, -- Determines if special tags with unique message colors will be rendered in BubbleChat's
 
 	["BubbleSizeOffset"] = 20, -- Determines the size offset between chat bubbles and their inner text. This is a visual setting but it is recommended that you do not edit this value.
 	["BubbleLifespan"] = 10, -- This determines the lifespan of our chat bubbles. After this timespan (in seconds), your bubble with get garbage collected
@@ -54,13 +55,15 @@ return {
 	["BubbleTweenInfo"] = TweenInfo.new(.5, Enum.EasingStyle.Exponential),
 	["BubbleTextSize"] = 18, -- WARNING: This will only affect the textsize of our bubble chat!
 
-	["BubbleTextColor"] = Color3.fromRGB(255, 255, 255),
+	["BubbleTextStrokeColor"] = Color3.fromRGB(0, 0, 0),
+	["BubbleTextColor"] = Color3.fromRGB(255, 255 ,255),
+
+	["BubbleTextStrokeTransparency"] = .8,
+	["BubbleTextTransparency"] = 0,
+
 	["BubbleColor"] = Color3.fromRGB(0, 0, 0),
 	["BubbleFont"] = Enum.Font.SourceSansBold, -- WARNING: This will NOT be the font for our custom chat system. This will only change our bubble chat text font!
-
-	["BubbleBackgroundTransparency"] = 0.5,
-	["BubbleTextStrokeTransparency"] = 0.9,
-	["BubbleTextTransparency"] = 0,
+	["BubbleBackgroundTransparency"] = .5,
 
 	--// EMOTES
 
