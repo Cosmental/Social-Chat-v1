@@ -290,7 +290,7 @@ function GetTag(Player : Player)
 			if ((Requirements.GroupId > 0) and (Player:IsInGroup(Requirements.GroupId))) then
 				local Ranks = Requirements.AcceptedRanks
 
-				if (not next(Ranks)) then
+				if ((not Ranks) or (not next(Ranks))) then
 					continue;
 				else
 					local PlayerRank = Player:GetRankInGroup(Requirements.GroupId);
@@ -309,6 +309,11 @@ function GetTag(Player : Player)
 				continue;
 			end
 		end
+
+        --// Tag filler
+        if ((Tag) and (not Tag.TagData.SpeakerColor)) then
+            Tag.TagData.SpeakerColor = getRandomSpeakerColor();
+        end
 
 		--// Updating our Data
 		OwnedTag = Tag.TagData
