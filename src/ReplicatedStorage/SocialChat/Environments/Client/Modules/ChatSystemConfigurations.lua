@@ -96,7 +96,17 @@ return {
 		["wave"] = {
 			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507770239",
 			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=128777973"
-		}
+		},
+
+		["cheer"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507770677",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=129423030"
+		};
+
+		["point"] = {
+			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507770453",
+			[Enum.HumanoidRigType.R6] = "http://www.roblox.com/asset/?id=128853357"
+		};
 	},
 
 	["FriendJoinMessagesEnabled"] = true, -- Determines if a friend join message will display whenever a friend joins our client's game

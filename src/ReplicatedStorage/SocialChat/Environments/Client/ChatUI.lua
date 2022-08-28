@@ -8,8 +8,8 @@
 ]]--
 
 --// Module
-local ChatUIMaster = {};
-ChatUIMaster.__index = ChatUIMaster
+local ChatUI = {};
+ChatUI.__index = ChatUI
 
 --// Services
 local UserInputService = game:GetService("UserInputService");
@@ -48,7 +48,7 @@ local SpacingBounds
 --// States
 local isClientMuted : boolean
 local isMouseOnChat : boolean
-local isChatHidden : boolean
+local isChatHidden : boolean = false
 local isBoxHidden : boolean = true
 
 local canChatHide : boolean
@@ -57,8 +57,8 @@ local focusLostAt : number
 local currentEmoteTrack : string?
 
 --// Initialization
-function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRemotes : Instance)
-    local self = setmetatable({}, ChatUIMaster);
+function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes : Instance)
+    local self = setmetatable({}, ChatUI);
     ChatEvents = ChatRemotes
 
     ChatService = ChatController
@@ -73,6 +73,58 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     ChatBox = ChatGUI.FrameChatBox.InputBoxChat
     DisplayLabel = ChatGUI.FrameChatBox.LabelDisplayTypedChat
     OriginalBoxSize = ChatBox.AbsoluteSize
+
+    --// Selection Frame
+    --\\ This section simulates a "selection box" for our DisplayLabel!
+
+    local SelectionFrame = Instance.new("Frame");
+
+    SelectionFrame.BackgroundColor3 = Color3.fromRGB(106, 159, 248);
+    SelectionFrame.Name = "SelectionFrame"
+    SelectionFrame.BorderSizePixel = 0
+    SelectionFrame.Visible = false
+
+    SelectionFrame.ZIndex = 2
+    SelectionFrame.Parent = DisplayLabel
+
+    local CursorFrame = Instance.new("Frame");
+    
+    CursorFrame.Size = UDim2.fromOffset(2, DisplayLabel.AbsoluteSize.Y);
+    CursorFrame.Visible = false
+
+    CursorFrame.Name = "CursorFrame"
+    CursorFrame.BorderSizePixel = 0
+    CursorFrame.Parent = DisplayLabel
+
+    local function updateSelectionBox()
+        --[[local selectionInfo = ChatUI:GetSelected();
+        
+        if (selectionInfo) then
+            SelectionFrame.Size = UDim2.fromOffset(selectionInfo.SelectionSize, DisplayLabel.AbsoluteSize.Y + 4);
+            SelectionFrame.Position = UDim2.fromOffset(selectionInfo.StartPos, 0);
+            SelectionFrame.Visible = true
+        else
+            SelectionFrame.Visible = false
+        end]]
+    end
+
+    local function updateCursorPos()
+        --[[local currentPos = ChatBox.CursorPosition
+        local textBeforeCursorSize : number = TextService:GetTextSize(
+            ChatBox.Text:sub(1, currentPos),
+            DisplayLabel.TextSize,
+            DisplayLabel.Font,
+            Vector2.new(math.huge, math.huge)
+        );
+
+        CursorFrame.Position = UDim2.fromOffset(textBeforeCursorSize.X, 0);]]
+    end
+
+    ChatBox:GetPropertyChangedSignal("SelectionStart"):Connect(updateSelectionBox);
+    ChatBox:GetPropertyChangedSignal("CursorPosition"):Connect(function()
+        updateSelectionBox();
+        updateCursorPos();
+    end);
 
     --// Setup
     local ChatModules = ChatService:GetModules();
@@ -152,14 +204,14 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         if (typeof(speaker) ~= "Instance") then return; end
         local messageHasMoreThanOneWord = (#message:split(" ") > 1);
 
-        if ((ChatSettings.AllowBubbleHiding) and ((not didUserRequestHidenBubble) or (not messageHasMoreThanOneWord))) then
+        if ((not ChatSettings.AllowBubbleHiding) or ((not didUserRequestHidenBubble) or (not messageHasMoreThanOneWord))) then
             ChatService:CreateBubbleMessage(speaker.Character, message, tagInfo);
         end
     end);
 
     ChatEvents.ChatMute.OnClientEvent:Connect(function(isMuted : boolean)
         isClientMuted = isMuted
-        SetBoxDisplay(true);
+        SetTextBoxVisible(true);
 
         if (isMuted) then
             ChatService:MuteClient();
@@ -183,12 +235,13 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     end);
 
     ChatBox.FocusLost:Connect(function(enterPressed : boolean)
+        CursorFrame.Visible = false
         canChatHide = (not isMouseOnChat);
         focusLostAt = os.clock();
 
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
-            SetBoxDisplay(true);
+            SetTextBoxVisible(true);
 
             return;
         end
@@ -281,7 +334,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         end
         
         ChatBox.PlaceholderText = "Type '/' to chat"
-        SetBoxDisplay(true);
+        SetTextBoxVisible(true);
         ChatBox.Text = ""
     end);
 
@@ -365,9 +418,10 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
     --// Visibility
     ChatBox.Focused:Connect(function()
         canChatHide = false
+        CursorFrame.Visible = true
         ChatBox.PlaceholderText = ""
 
-        SetBoxDisplay(false);
+        SetTextBoxVisible(false);
         SetChatHidden(false);
     end);
     
@@ -375,7 +429,7 @@ function ChatUIMaster:Init(ChatController : table, ChatUtilities : table, ChatRe
         canChatHide = false
         isMouseOnChat = true
         if (not isChatHidden) then return; end
-
+        
         SetChatHidden(false);
     end);
 
@@ -413,35 +467,77 @@ end
 --// Public Methods
 
 --- Hides the ChatFrame GUI
-function ChatUIMaster:Enable()
+function ChatUI:Enable()
     ChatFrame.Visible = true
 end
 
 --- Enables the ChatFrame GUI
-function ChatUIMaster:Disable()
+function ChatUI:Disable()
     ChatFrame.Visible = false
 end
 
 --- Sets the current chat text to the provided string
-function ChatUIMaster:SetText(desiredText : string)
+function ChatUI:SetText(desiredText : string)
     ChatBox.PlaceholderText = ""
     ChatBox.Text = desiredText
 
     ChatBox:CaptureFocus();
-    SetBoxDisplay(false);
+    SetTextBoxVisible(false);
+end
+
+--- Returns Selection data based on our ChatBox's behavior
+function ChatUI:GetSelected()
+    if ((ChatBox.CursorPosition == -1) or (ChatBox.SelectionStart == -1)) then return; end
+    
+    local selectionStart : number = math.min(ChatBox.CursorPosition, ChatBox.SelectionStart);
+    local selectionEnd : number = math.max(ChatBox.CursorPosition, ChatBox.SelectionStart);
+
+    print(selectionStart, selectionEnd)
+
+    local priorText : string = ChatBox.Text:sub(1, selectionStart - 1);
+    local afterText : string = ChatBox.Text:sub(selectionEnd + 1);
+
+    local priorTextSize : number = TextService:GetTextSize(
+        priorText,
+        DisplayLabel.TextSize,
+        DisplayLabel.Font,
+        Vector2.new(math.huge, math.huge)
+    );
+
+    local afterTextSize = TextService:GetTextSize(
+        afterText,
+        DisplayLabel.TextSize,
+        DisplayLabel.Font,
+        Vector2.new(math.huge, math.huge)
+    );
+
+    local absSelectionSize = ((ChatBox.TextBounds.X - afterTextSize.X) - priorTextSize.X);
+    local selectedText = string.sub(
+        ChatBox.Text,
+        selectionStart,
+        selectionEnd
+    );
+
+    return {
+        ["StartPos"] = priorTextSize.X % ChatBox.AbsoluteSize.X,
+        ["EndPos"] = (ChatBox.TextBounds.X - afterTextSize.X) % ChatBox.AbsoluteSize.X,
+
+        ["SelectionSize"] = absSelectionSize,
+        ["Text"] = selectedText
+    };
 end
 
 --// Functions
 
 --- Sets the visibility of our masking label based on the provided boolean parameter
-function SetBoxDisplay(isEnabled : boolean)
+function SetTextBoxVisible(isEnabled : boolean)
     isBoxHidden = (not isEnabled);
 
     if (isEnabled) then
         ChatBox.TextTransparency = ChatSettings.TextTransparency
         ChatBox.TextStrokeTransparency = ChatSettings.TextStrokeTransparency
     else
-        ChatBox.TextTransparency = 1
+        ChatBox.TextTransparency = .5
         ChatBox.TextStrokeTransparency = 1
     end
 end
@@ -449,6 +545,7 @@ end
 --- Sets the chatGui background's visibility state to the provided state
 function SetChatHidden(setHidden : boolean)
     if (isChatHidden == setHidden) then return; end
+    if ((setHidden) and (ChatBox:IsFocused())) then SetChatHidden(false); return; end
 
     if (setHidden) then
         local MainTween = TweenService:Create(ChatGUI, TweenInfo.new(0.5), {
@@ -527,4 +624,4 @@ function pickRandomDanceEmote(RigType : Enum.HumanoidRigType) : string
     return contenders[math.random(#contenders)];
 end
 
-return ChatUIMaster
+return ChatUI
