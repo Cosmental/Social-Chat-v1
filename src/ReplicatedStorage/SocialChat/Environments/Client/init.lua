@@ -103,9 +103,7 @@
 ]]--
 
 --// Services
-local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService");
-local TextService = game:GetService("TextService");
 local RunService = game:GetService("RunService");
 
 --// Imports
@@ -113,6 +111,7 @@ local ChatUI = require(script.ChatUI);
 
 local ChatSystemTags = require(script.Modules.ChatSystemTags);
 local ChatSystemEmotes = require(script.Modules.ChatSystemEmotes);
+local ChatSystemCommons = require(script.Modules.ChatSystemCommons);
 local ChatSystemConfigurations = require(script.Modules.ChatSystemConfigurations);
 
 --// Constants
@@ -165,7 +164,9 @@ function SocialChat:Init(ChatUtilities : table, Remotes : Instance)
 
     ChatSystemEmotes = ChatSystemEmotes(ChatUtilities);
     ChatUI:Init(SocialChat, ChatUtilities, Remotes);
+    ChatSystemCommons:Init();
 
+    SpaceLength = ChatSystemCommons.SpaceLength
     AbsoluteFontSize = (
         ((ChatSystemConfigurations.FontSize == "Default") and (ChatBox.TextBounds.Y + 2))
             or (ChatSystemConfigurations.FontSize)
@@ -175,8 +176,6 @@ function SocialChat:Init(ChatUtilities : table, Remotes : Instance)
         ((ChatSystemConfigurations.ChatEmoteSize == "Default") and (AbsoluteFontSize + 2))
             or (ChatSystemConfigurations.ChatEmoteSize)
     );
-
-    SpaceLength = GetTextSize(" ", ChatFrame);
 
     --// Chat Canvas Handling
 	local Layout = ChatFrame:FindFirstChildWhichIsA("UIGridStyleLayout");
@@ -280,19 +279,19 @@ function SocialChat:CreateChatMessage(speaker : string | Player, message : strin
 			or ""
 	);
 
-    local SpeakerUsernameLength = GetTextSize(UserText, ChatFrame);
-    local SpeakerTagLength = GetTextSize(TagText, ChatFrame);
+    local SpeakerUsernameLength = ChatSystemCommons:GetTextSize(UserText, ChatFrame);
+    local SpeakerTagLength = ChatSystemCommons:GetTextSize(TagText, ChatFrame);
 
     local RenderResult = SocialChat:RenderText(message, ChatFrame, metadata, nil, (SpeakerUsernameLength.X + SpeakerTagLength.X));
     
     --// Tag Label Solving
-    local SpeakerTagLabel = CreateLabel(SpeakerTagLength);
+    local SpeakerTagLabel = ChatSystemCommons:CreateLabel(SpeakerTagLength);
 
     SpeakerTagLabel.Name = "TagLabel"
     SpeakerTagLabel.Text = TagText
 
     if ((metadata) and ((metadata.TagColor) and (not toPrivateRecipient))) then
-        local LabelEffect = ApplyLabelColor({SpeakerTagLabel}, metadata.TagColor);
+        local LabelEffect = ChatSystemCommons:ApplyLabelColor({SpeakerTagLabel}, metadata.TagColor);
 
         if (LabelEffect) then
             table.insert(RenderResult.Garbage.Effects, {
@@ -306,14 +305,14 @@ function SocialChat:CreateChatMessage(speaker : string | Player, message : strin
     end
 
     --// Username Label Solving
-    local SpeakerUsernameLabel = CreateButton(SpeakerUsernameLength);
+    local SpeakerUsernameLabel = ChatSystemCommons:CreateButton(SpeakerUsernameLength);
 
     SpeakerUsernameLabel.Position = UDim2.fromOffset(SpeakerTagLength.X, 0);
     SpeakerUsernameLabel.Name = "UsernameLabel"
     SpeakerUsernameLabel.Text = UserText
 
     if ((metadata) and (metadata.SpeakerColor)) then
-        local LabelEffect = ApplyLabelColor({SpeakerUsernameLabel}, metadata.SpeakerColor);
+        local LabelEffect = ChatSystemCommons:ApplyLabelColor({SpeakerUsernameLabel}, metadata.SpeakerColor);
 
         if (LabelEffect) then
             table.insert(RenderResult.Garbage.Effects, {
@@ -332,11 +331,11 @@ function SocialChat:CreateChatMessage(speaker : string | Player, message : strin
     end
 
     --// Container Frame Handling
-    local ClientMessageFrame = CreateFrame(Vector2.new(ChatFrame.AbsoluteSize.X, RenderResult.Scale.Y));
+    local ClientMessageFrame = ChatSystemCommons:CreateFrame(Vector2.new(ChatFrame.AbsoluteSize.X, RenderResult.Scale.Y));
     ClientMessageFrame.Name = ("ClientMessage_"..(tostring(speaker)));
 
     if (ChatSystemConfigurations.IsTweeningAllowed) then
-        local TweenFrame = CreateFrame(Vector2.new(0, 0));
+        local TweenFrame = ChatSystemCommons:CreateFrame(Vector2.new(0, 0));
         TweenFrame.Position = UDim2.fromOffset(-25, 10);
         TweenFrame.Size = UDim2.fromScale(1, 1);
         TweenFrame.Name = "MessageTweenFrame"
@@ -469,7 +468,7 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
     local AbsoluteBubblePosX = 0
     local VisibleGraphemes = {};
 
-    local SpaceSize = GetTextSize(" ", BubbleContainer.FrameBackground, nil, BubbleSizeParameters);
+    local SpaceSize = ChatSystemCommons:GetTextSize(" ", BubbleContainer.FrameBackground, nil, BubbleSizeParameters);
     local CurrentLine = CreateNewChatBubbleLine(MessageContainer.BackgroundBubble, SpaceSize.Y);
 
     for Index, RenderObject in pairs(RenderResult.Objects) do
@@ -528,7 +527,7 @@ function SocialChat:CreateBubbleMessage(Agent : Model, message : string, metadat
         end
 
         if (Index == #message:split(" ")) then continue; end -- We dont want to add extra spacing at the end of our message LOL
-        local SpaceLabel = CreateLabel(SpaceSize, ChatSystemConfigurations.BubbleFont);
+        local SpaceLabel = ChatSystemCommons:CreateLabel(SpaceSize, ChatSystemConfigurations.BubbleFont);
 
         SpaceLabel.Name = "SPACELABEL_VISUAL"
         SpaceLabel.Text = ""
@@ -717,7 +716,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
 
         if ((isEmote) and (ChatSystemEmotes[emoteName]) and (EmotesEnabled)) then -- This word is an emote!
             local EmoteButton = Instance.new("ImageButton");
-            local SpriteClipObject = ApplyEmoji(EmoteButton, emoteName);
+            local SpriteClipObject = ChatSystemCommons:ApplyEmoji(EmoteButton, emoteName);
 
             if ((TotalScaleX + AbsoluteEmoteSize) >= ChatFrame.AbsoluteSize.X) then
                 TotalScaleX = 0
@@ -790,8 +789,8 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             table.insert(RenderedObjects, EmoteButton);
             TotalScaleX += (AbsoluteEmoteSize + SpaceLength.X);
         elseif (Word:lower() == "/shrug") then
-            local ShrugWordSize = GetTextSize("¯\\_(ツ)_/¯", container, false, ((parameters) and (parameters.chatMeta)));
-            local ShrugLabel = CreateLabel(ShrugWordSize);
+            local ShrugWordSize = ChatSystemCommons:GetTextSize("¯\\_(ツ)_/¯", container, false, ((parameters) and (parameters.chatMeta)));
+            local ShrugLabel = ChatSystemCommons:CreateLabel(ShrugWordSize);
 
             if ((TotalScaleX + ShrugWordSize.X) >= container.AbsoluteSize.X) then
                 TotalScaleX = 0
@@ -805,8 +804,8 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             table.insert(RenderedObjects, ShrugLabel);
             TotalScaleX += ShrugWordSize.X
         else -- This is a normal text word! (probably)
-            local WordSize, doesWordOverflow = GetTextSize(Word, container, true, ((parameters) and (parameters.chatMeta)));
-            local WordFrame = CreateFrame(WordSize);
+            local WordSize, doesWordOverflow = ChatSystemCommons:GetTextSize(Word, container, true, ((parameters) and (parameters.chatMeta)));
+            local WordFrame = ChatSystemCommons:CreateFrame(WordSize);
 
             if (((TotalScaleX + WordSize.X) >= container.AbsoluteSize.X) or (doesWordOverflow)) then
                 TotalScaleX = 0
@@ -823,9 +822,11 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             local GraphemePosX = 0
             local GraphemePosY = 0
 
-            for _, Grapheme in pairs(Word:split("")) do
-                local GraphemeSize = GetTextSize(Grapheme, container, false, ((parameters) and (parameters.chatMeta)));
-                local GraphemeLabel = CreateLabel(GraphemeSize);
+            for _, codepoint in utf8.codes(Word) do
+                local Grapheme = utf8.char(codepoint);
+
+                local GraphemeSize = ChatSystemCommons:GetTextSize(Grapheme, container, false, ((parameters) and (parameters.chatMeta)));
+                local GraphemeLabel = ChatSystemCommons:CreateLabel(GraphemeSize);
 
                 if ((TotalScaleX + GraphemeSize.X) > container.AbsoluteSize.X) then
                     GraphemePosX = 0
@@ -857,7 +858,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
     local RenderedEffects = {};
 
     if ((metaColor) and (EffectRenderingEnabled)) then
-        local specialEffect = ApplyLabelColor(RenderedObjects, metaColor);
+        local specialEffect = ChatSystemCommons:ApplyLabelColor(RenderedObjects, metaColor);
         
         if (specialEffect) then
             RenderedEffects = {
@@ -903,168 +904,9 @@ end
 
 --// Functions
 
---- Returns the absoluteSize for the provided string
-function GetTextSize(text : string, parentObject : Instance, byGrapheme : boolean?, CustomTextParams : table?) : Vector2 | boolean?
-    local AbsX = parentObject.AbsoluteSize.X
-    local AbsY = parentObject.AbsoluteSize.Y
-
-    if (byGrapheme) then
-        local doesWordOverflow = false
-        local GraphemeX = 0
-        local GraphemeY = SpaceLength.Y
-
-        for _, Grapheme in pairs(text:split("")) do
-            local GraphemeSize = TextService:GetTextSize(
-                Grapheme,
-                ((CustomTextParams) and (CustomTextParams.FontSize)) or (AbsoluteFontSize),
-                ((CustomTextParams) and (CustomTextParams.Font)) or (ChatSystemConfigurations.Font),
-                Vector2.new(AbsX, AbsY)
-            );
-
-            GraphemeX += GraphemeSize.X
-
-            if (GraphemeX >= AbsX) then
-                GraphemeX = 0
-                GraphemeY += (((CustomTextParams) and (CustomTextParams.FontSize)) or (SpaceLength.Y));
-
-                doesWordOverflow = true
-            end
-        end
-
-        return Vector2.new(
-            (((doesWordOverflow) and (AbsX)) or (GraphemeX)),
-            GraphemeY
-        ), doesWordOverflow
-    else
-        return TextService:GetTextSize(
-            text,
-            ((CustomTextParams) and (CustomTextParams.FontSize)) or (AbsoluteFontSize),
-            ((CustomTextParams) and (CustomTextParams.Font)) or (ChatSystemConfigurations.Font),
-            Vector2.new(AbsX, AbsY)
-        );
-    end
-end
-
---- Applies a TextLabel/TextButton Color scheme based on the provided "tagColor" parameter
-function ApplyLabelColor(Graphemes : table, tagColor : string | Color3, UniqueTagsOnly : boolean?) : table?
-
-    --// Extract TextObjects from our Grapheme table
-    local function extractTextObjects(fromArray : table) : table
-        local extractedObjects = {};
-
-        for _, Object in pairs(fromArray) do
-            if ((Object:IsA("TextLabel")) or (Object:IsA("TextButton"))) then
-                table.insert(extractedObjects, Object);
-            elseif (next(Object:GetChildren())) then
-                for _, v in pairs(extractTextObjects(Object:GetChildren())) do
-                    table.insert(extractedObjects, v);
-                end
-            end
-        end
-
-        return extractedObjects
-    end
-
-    local textObjects = extractTextObjects(Graphemes);
-
-    --// Now we can color our TextObjects
-    if ((typeof(tagColor) == "Color3") and (not UniqueTagsOnly)) then
-        for _, Label in pairs(textObjects) do
-            Label.TextColor3 = tagColor
-        end
-    elseif (type(tagColor) == "string") then
-        local UniqueTag = ChatSystemTags[tagColor];
-
-        if (UniqueTag) then
-            return coroutine.wrap(UniqueTag.OnCalled)(textObjects);
-        else
-            warn("No tag data was found for "..(tagColor).."!");
-        end
-    end
-
-end
-
---- Applies an Emoji to the given ImageObject using the provided Emote query string
-function ApplyEmoji(ImageObject : Instance, Emote : string) : table?
-    local EmoteInfo = ChatSystemEmotes[Emote];
-    ImageObject.Image = EmoteInfo.Image
-    
-    if (EmoteInfo.IsAnimated) then -- Emote is animated!
-        return coroutine.wrap(EmoteInfo.OnEmoteFired)(ImageObject);
-    end
-end
-
---- Creates and returns a preset TextLabel! This is purely for readability
-function CreateLabel(fromSize : Vector2, CustomFont : Enum.Font?) : TextLabel
-    local NewLabel = Instance.new("TextLabel");
-    
-    if (ChatSystemConfigurations.DebugOutputEnabled) then
-        NewLabel.BackgroundColor3 = BrickColor.random().Color
-        NewLabel.BackgroundTransparency = 0.8
-    else
-        NewLabel.BackgroundTransparency = 1
-    end
-
-    NewLabel.TextStrokeTransparency = 0.8
-    NewLabel.TextColor3 = Color3.fromRGB(255, 255, 255);
-    NewLabel.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
-    
-    NewLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NewLabel.TextSize = AbsoluteFontSize
-    NewLabel.Font = ((CustomFont) or (ChatSystemConfigurations.Font));
-
-    return NewLabel
-end
-
---- Creates and returns a preset TextButton! This is purely for readability
-function CreateButton(fromSize : Vector2, CustomFont : Enum.Font?) : TextButton
-    local NewButton = Instance.new("TextButton");
-
-    if (ChatSystemConfigurations.DebugOutputEnabled) then
-        NewButton.BackgroundColor3 = BrickColor.random().Color
-        NewButton.BackgroundTransparency = 0.8
-    else
-        NewButton.BackgroundTransparency = 1
-    end
-
-    NewButton.TextStrokeTransparency = 0.8
-    NewButton.TextColor3 = Color3.fromRGB(255, 255, 255);
-    NewButton.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
-
-    NewButton.TextXAlignment = Enum.TextXAlignment.Left
-    NewButton.Font = ((CustomFont) or (ChatSystemConfigurations.Font));
-
-    NewButton.TextScaled = true
-    NewButton.TextWrapped = true
-
-    return NewButton
-end
-
---- Creates and returns a preset Frame! This is purely for readability
-function CreateFrame(fromSize : Vector2) : Frame
-    local NewFrame = Instance.new("Frame");
-
-	NewFrame.Size = UDim2.fromOffset(fromSize.X, math.max(fromSize.Y, SpaceLength.Y));
-    NewFrame.BackgroundTransparency = 1
-    NewFrame.ClipsDescendants = true
-
-	return NewFrame
-end
-
---- Returns a new ChatBubble line along with its AbsoluteSize. This is just for readability/simplifying code
-function CreateNewChatBubbleLine(Container : Instance, YSize : number) : Frame | Vector2
-    local newLine = MultiLinePrefab:Clone();
-    local lineAbsX = newLine.AbsoluteSize.X
-
-    newLine.Size = UDim2.fromOffset(lineAbsX, YSize);
-    newLine.Parent = Container
-
-    return newLine
-end
-
 --- Creates and returns a preset EmoteHoverObject! This is purely for readability
 function CreateEmoteHoverObject(emoteName : string)
-    local EmoteBounds = GetTextSize(emoteName, ChatFrame);
+    local EmoteBounds = ChatSystemCommons:GetTextSize(emoteName, ChatFrame);
     local NewHoverObject = EmoteBubblePrefab:Clone();
 
     NewHoverObject.LabelEmoteName.Text = ((ChatSystemConfigurations.EmoteSyntax)..(emoteName)..(ChatSystemConfigurations.EmoteSyntax));
@@ -1178,6 +1020,17 @@ function ShowBubble(BubbleContainer : Frame, BubbleObjects : table, ForcedSize :
     else
         BubbleContainer.Visible = true
     end
+end
+
+--- Returns a new ChatBubble line along with its AbsoluteSize. This is just for readability/simplifying code
+function CreateNewChatBubbleLine(Container : Instance, YSize : number) : Frame | Vector2
+    local newLine = MultiLinePrefab:Clone();
+    local lineAbsX = newLine.AbsoluteSize.X
+
+    newLine.Size = UDim2.fromOffset(lineAbsX, YSize);
+    newLine.Parent = Container
+
+    return newLine
 end
 
 --- Destroys a chat bubble
