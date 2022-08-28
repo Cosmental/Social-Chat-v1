@@ -74,58 +74,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     DisplayLabel = ChatGUI.FrameChatBox.LabelDisplayTypedChat
     OriginalBoxSize = ChatBox.AbsoluteSize
 
-    --// Selection Frame
-    --\\ This section simulates a "selection box" for our DisplayLabel!
-
-    local SelectionFrame = Instance.new("Frame");
-
-    SelectionFrame.BackgroundColor3 = Color3.fromRGB(106, 159, 248);
-    SelectionFrame.Name = "SelectionFrame"
-    SelectionFrame.BorderSizePixel = 0
-    SelectionFrame.Visible = false
-
-    SelectionFrame.ZIndex = 2
-    SelectionFrame.Parent = DisplayLabel
-
-    local CursorFrame = Instance.new("Frame");
-    
-    CursorFrame.Size = UDim2.fromOffset(2, DisplayLabel.AbsoluteSize.Y);
-    CursorFrame.Visible = false
-
-    CursorFrame.Name = "CursorFrame"
-    CursorFrame.BorderSizePixel = 0
-    CursorFrame.Parent = DisplayLabel
-
-    local function updateSelectionBox()
-        --[[local selectionInfo = ChatUI:GetSelected();
-        
-        if (selectionInfo) then
-            SelectionFrame.Size = UDim2.fromOffset(selectionInfo.SelectionSize, DisplayLabel.AbsoluteSize.Y + 4);
-            SelectionFrame.Position = UDim2.fromOffset(selectionInfo.StartPos, 0);
-            SelectionFrame.Visible = true
-        else
-            SelectionFrame.Visible = false
-        end]]
-    end
-
-    local function updateCursorPos()
-        --[[local currentPos = ChatBox.CursorPosition
-        local textBeforeCursorSize : number = TextService:GetTextSize(
-            ChatBox.Text:sub(1, currentPos),
-            DisplayLabel.TextSize,
-            DisplayLabel.Font,
-            Vector2.new(math.huge, math.huge)
-        );
-
-        CursorFrame.Position = UDim2.fromOffset(textBeforeCursorSize.X, 0);]]
-    end
-
-    ChatBox:GetPropertyChangedSignal("SelectionStart"):Connect(updateSelectionBox);
-    ChatBox:GetPropertyChangedSignal("CursorPosition"):Connect(function()
-        updateSelectionBox();
-        updateCursorPos();
-    end);
-
     --// Setup
     local ChatModules = ChatService:GetModules();
 
@@ -186,6 +134,15 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         SetChatHidden(true);
     end);
 
+    --// TextBox Clicking simulation
+    --\\ Since our method of setting up the chat system is a little hacky, we need an alternate way for Mobile clients to click on the Chatbox!
+
+    DisplayLabel.InputBegan:Connect(function(Input)
+        if ((Input.UserInputType == Enum.UserInputType.Touch) or (Input.UserInputType == Enum.UserInputType.MouseButton1)) then
+            ChatBox:CaptureFocus();
+        end
+    end);
+
     --// Events
     ChatEvents.ChatReplicate.OnClientEvent:Connect(function(speaker : string | Player, message : string, tagInfo : table, toRecipient : Player?)
         local didUserRequestHidenBubble = (message:sub(1, #ChatSettings.BubbleHidePrefix) == ChatSettings.BubbleHidePrefix);
@@ -235,7 +192,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     end);
 
     ChatBox.FocusLost:Connect(function(enterPressed : boolean)
-        CursorFrame.Visible = false
         canChatHide = (not isMouseOnChat);
         focusLostAt = os.clock();
 
@@ -418,7 +374,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     --// Visibility
     ChatBox.Focused:Connect(function()
         canChatHide = false
-        CursorFrame.Visible = true
         ChatBox.PlaceholderText = ""
 
         SetTextBoxVisible(false);
