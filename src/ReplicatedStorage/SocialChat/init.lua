@@ -13,14 +13,14 @@
 ]]--
 
 --// Imports
+local IsServer = game:GetService("RunService"):IsServer();
 local Environments = script.Environments
 local Utilities = script.Utilities
 
-local ServerChat = require(Environments.Server);
-local ClientChat = require(Environments.Client);
+local ServerChat = ((IsServer) and (require(Environments.Server)));
+local ClientChat = ((not IsServer) and (require(Environments.Client)));
 
 --// Constants
-local IsServer = game:GetService("RunService"):IsServer();
 local ChatRemotes = script.Remotes
 
 --// States

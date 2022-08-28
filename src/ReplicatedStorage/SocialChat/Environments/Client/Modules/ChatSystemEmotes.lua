@@ -74,6 +74,9 @@ local Emotes = {
 };
 
 return function (ChatUtilities : table)
-	SpriteClip = ChatUtilities.SpriteClip
+	if (not SpriteClip) then
+		SpriteClip = ChatUtilities.SpriteClip
+	end
+	
 	return Emotes
 end

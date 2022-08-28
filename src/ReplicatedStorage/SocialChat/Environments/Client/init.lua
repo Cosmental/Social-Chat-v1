@@ -702,6 +702,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
 
     local EmotesEnabled = (((parameters) and (parameters.emotesEnabled)) or (true));
     local EffectRenderingEnabled = (((parameters) and (parameters.effectsEnabled)) or (true));
+    local IsBubbleChat = ((parameters) and (parameters.isBubbleChat));
 
     local TotalScaleX = ((additionalXSpace) or (0));
     local TotalScaleY = 0
@@ -735,7 +736,10 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
             EmoteButton.Name = "Emoji_"..(emoteName);
 
             EmoteButton.Position = UDim2.fromOffset(TotalScaleX, TotalScaleY);
-            EmoteButton.Size = UDim2.fromOffset(AbsoluteEmoteSize, AbsoluteEmoteSize);
+            EmoteButton.Size = UDim2.fromOffset(
+                (((IsBubbleChat) and (ChatSystemConfigurations.BubbleEmoteSize)) or (AbsoluteEmoteSize)),
+                (((IsBubbleChat) and (ChatSystemConfigurations.BubbleEmoteSize)) or (AbsoluteEmoteSize))
+            );
 
             --// Emote Hover Functuality (opt.)
             if (ChatSystemConfigurations.DisplayEmoteInfoOnHover) then
@@ -849,10 +853,9 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
         TotalScaleX += SpaceLength.X
     end
 
-    local isMessageFromBubbleChat : boolean = ((parameters) and (parameters.isBubbleChat));
     local metaColor = ((metadata)
-        and (((isMessageFromBubbleChat) and (metadata.BubbleTextColor)) -- BubbleChat TextColor
-        or ((not isMessageFromBubbleChat) and (metadata.MessageColor))) -- Default Message Color
+        and (((IsBubbleChat) and (metadata.BubbleTextColor)) -- BubbleChat TextColor
+        or ((not IsBubbleChat) and (metadata.MessageColor))) -- Default Message Color
     );
     
     local RenderedEffects = {};

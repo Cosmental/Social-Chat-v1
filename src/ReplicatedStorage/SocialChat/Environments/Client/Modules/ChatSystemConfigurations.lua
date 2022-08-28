@@ -68,7 +68,7 @@ return {
 	--// EMOTES
 
 	["ChatEmoteSize"] = "Default", -- This is the displayed emote size for our chat frame {x, y} (if default, this will scale automatically) [20]
-	["BubbleEmoteSize"] = 16, -- This is the displayed emote size for Chat Bubbles {x, y}
+	["BubbleEmoteSize"] = 20, -- This is the displayed emote size for Chat Bubbles {x, y} [WARNING: This property can cause emojis to grow outside of their ChatBubbles if they outgrow the default textSize by too much]
 	["EmoteSyntax"] = ":", -- This will be the required syntax to use an emote (ex: ":troll:")
 	["DisplayEmoteInfoOnHover"] = true, -- If true, a bubble will appear above our emote upon our client hovering over to display its usage keycode
 		
