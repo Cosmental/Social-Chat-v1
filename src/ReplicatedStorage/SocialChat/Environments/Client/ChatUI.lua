@@ -637,15 +637,8 @@ end
 --- Sets the visibility of our masking label based on the provided boolean parameter
 function SetTextBoxVisible(isEnabled : boolean)
     isBoxHidden = (not isEnabled);
+    ChatBox.Visible = isEnabled
     CursorFrame.Visible = isBoxHidden
-
-    if (isEnabled) then
-        ChatBox.TextTransparency = ChatSettings.TextTransparency
-        ChatBox.TextStrokeTransparency = ChatSettings.TextStrokeTransparency
-    else
-        ChatBox.TextTransparency = 1
-        ChatBox.TextStrokeTransparency = 1
-    end
 end
 
 --- Sets the chatGui background's visibility state to the provided state
@@ -770,7 +763,7 @@ function updateTextPosition()
 
         local WidthOffset = (((FocusPoint + AbsX) + Padding + 2) - CursorWidth);
 
-        local IsOffScreenOnLeft = ((TotalWidth >= AbsX / 2) and (AbsX < WidthOffset));
+        local IsOffScreenOnLeft = ((AbsX < WidthOffset));
         local IsOffScreenOnRight = (CursorWidth > FocusPoint + AbsX);
         local IsOffScreen = (IsOffScreenOnLeft or IsOffScreenOnRight);
 
@@ -795,13 +788,11 @@ function updateTextPosition()
             FocusPoint = 0
         elseif (IsOffScreen) then
             if (IsOffScreenOnLeft) then
-                local LetterPos = (
-                    (CursorPosition > 0) and (CursorPosition - 1)
-                    or (CursorPosition + 2)
-                );
+                local CursorStart = math.min(CursorPosition, LastSavedCursorPosition);
+                local CursorEnd = math.max(CursorPosition, LastSavedCursorPosition);
 
                 local ChangeWidth = TextService:GetTextSize(
-                    ChatBox.Text:sub(LetterPos, LetterPos),
+                    ChatBox.Text:sub(CursorStart, CursorEnd),
                     ChatBox.TextSize,
                     ChatBox.Font,
                     Vector2.new(math.huge, math.huge)
