@@ -75,8 +75,9 @@ return {
 	--// MISC
 
 	["MaxMessagesAllowed"] = 50, -- Determines how many messages we can log before cleaning up our chat logs
-	["AllowChatDanceEmotes"] = true, -- If true, saying "/e {emoteName}" will play the desired emote (if it exists)
+	["AllowMarkdown"] = true, -- Determines if markdown text is supported. Markdown is similar to Discord's text behavior. (eg. **bold**, *italic*, __underlined__, etc.)
 
+	["AllowChatDanceEmotes"] = true, -- If true, saying "/e {emoteName}" will play the desired emote (if it exists)
 	["CustomDanceEmotes"] = { -- These are extra dance emotes that play when a player says "/e {emoteName}"
 		["dance1"] = {
 			[Enum.HumanoidRigType.R15] = "http://www.roblox.com/asset/?id=507771019",
