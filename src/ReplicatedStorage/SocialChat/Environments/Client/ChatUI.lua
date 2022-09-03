@@ -213,6 +213,9 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
         if ((Input.UserInputType == Enum.UserInputType.Touch) or (Input.UserInputType == Enum.UserInputType.MouseButton1)) then
             ChatBox.CursorPosition = LastSavedCursorPosition
+            SetTextBoxVisible(false);
+            SetChatHidden(false);
+
             ChatBox:CaptureFocus();
         end
     end);
@@ -264,6 +267,10 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
         game:GetService("RunService").RenderStepped:Wait();
         ChatBox.CursorPosition = LastSavedCursorPosition
+
+        SetTextBoxVisible(false);
+        SetChatHidden(false);
+
         ChatBox:CaptureFocus();
     end);
 
@@ -272,11 +279,10 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         focusLostAt = os.clock();
         
         CursorFrame.Visible = false
+        SetTextBoxVisible(true);
         
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
-            SetTextBoxVisible(true);
-            
             return;
         end
         
@@ -369,7 +375,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         end
         
         ChatBox.PlaceholderText = "Type '/' to chat"
-        SetTextBoxVisible(true);
         ChatBox.Text = ""
     end);
 
@@ -519,9 +524,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         canChatHide = false
         ChatBox.PlaceholderText = ""
 
-        SetTextBoxVisible(false);
-        SetChatHidden(false);
-
         updateTextPosition();
         updateCursorPos();
     end);
@@ -588,8 +590,10 @@ function ChatUI:SetText(desiredText : string)
     ChatBox.Text = desiredText
 
     ChatBox.CursorPosition = LastSavedCursorPosition
-    ChatBox:CaptureFocus();
     SetTextBoxVisible(false);
+    SetChatHidden(false);
+
+    ChatBox:CaptureFocus();
 end
 
 --- Returns Selection data based on our ChatBox's behavior
