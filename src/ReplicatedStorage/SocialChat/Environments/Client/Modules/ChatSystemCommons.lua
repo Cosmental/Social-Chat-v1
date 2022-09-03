@@ -25,6 +25,37 @@ local ChatBox
 
 local AbsoluteFontSize
 
+local OperatorFormatting = "<font color=\"rgb(150, 150, 150)\"><stroke thickness=\"0\">%s</stroke></font>"
+local MarkdownFormatting = { -- used for markdown embedding
+    [1] = {
+        ["operator"] = "**",
+        
+        ["format"] = "<stroke thickness=\".3\" color=\"rgb(255,255,255)\">%s</stroke>",
+		["query"] = "[^%*]%*%*(.-)%*%*"
+    };
+
+    [2] = {
+        ["operator"] = "*",
+
+        ["format"] = "<i>%s</i>",
+		["query"] = "[^%*]%*(.-)%*"
+    };
+
+    [3] = {
+        ["operator"] = "__",
+
+        ["format"] = "<u>%s</u>",
+		["query"] = "[^%*]__(.-)__"
+    };
+
+    [4] = {
+        ["operator"] = "~~",
+
+        ["format"] = "<s>%s</s>",
+		["query"] = "[^%*]~~(.-)~~"
+    };
+};
+
 --// Initialization
 function ChatSystemCommons:Init()
     ChatGUI = game.Players.LocalPlayer.PlayerGui.Chat.FrameChat
@@ -133,7 +164,49 @@ function ChatSystemCommons:ApplyEmoji(ImageObject : Instance, Emote : string) : 
     end
 end
 
---- Creates and returns a preset TextLabel! This is purely for readability
+--- Formats our Markdown text into rich or plain text!
+function ChatSystemCommons:MarkdownAsync(text : string, keepMarkdownOperators : boolean?) : string
+	for _, markdownData in ipairs(MarkdownFormatting) do
+        local formattedOperator = string.format(OperatorFormatting, markdownData.operator);
+        local movement = 0
+
+		repeat
+			local starts, ends, plainTxt = string.find(" "..text, markdownData.query, movement); -- The regex we are using requires at least one space to work
+            
+            local isEmpty : boolean = ((plainTxt) and (plainTxt:find("^%s*$")));
+            local isRich : boolean = (
+                (starts and ends)
+                    and (text:sub(starts - 1, starts - 1) == ">")
+                    and (text:sub(ends, ends) == "<")
+            );
+
+			if (((starts and ends) and (not isEmpty)) and (not isRich)) then -- Make sure our regex starts and ends somewhere AND isnt just whitetext
+                local replacementText = (
+                    ((keepMarkdownOperators) and string.format(markdownData.format, (formattedOperator..plainTxt..formattedOperator)))
+                    or (string.format(markdownData.format, plainTxt))
+                );
+            
+                text = (
+                    text:sub(1, starts - 1)..
+                    replacementText..
+                    (text:sub(ends))
+                );
+
+                movement += (starts + markdownData.format:len() + (formattedOperator:len() * 2) + plainTxt:len());
+            elseif (isEmpty or isRich) then
+                movement += markdownData.operator:len();
+			end
+		until
+		((not starts or not ends));
+	end
+    
+	return text
+end
+
+--// INSTANCING
+--\\ These methods are purely for the sake of better readability
+
+--- Creates and returns a preset TextLabel!
 function ChatSystemCommons:CreateLabel(fromSize : Vector2, CustomFont : Enum.Font?) : TextLabel
     local NewLabel = Instance.new("TextLabel");
     
@@ -155,7 +228,7 @@ function ChatSystemCommons:CreateLabel(fromSize : Vector2, CustomFont : Enum.Fon
     return NewLabel
 end
 
---- Creates and returns a preset TextButton! This is purely for readability
+--- Creates and returns a preset TextButton!
 function ChatSystemCommons:CreateButton(fromSize : Vector2, CustomFont : Enum.Font?) : TextButton
     local NewButton = Instance.new("TextButton");
 
@@ -179,7 +252,7 @@ function ChatSystemCommons:CreateButton(fromSize : Vector2, CustomFont : Enum.Fo
     return NewButton
 end
 
---- Creates and returns a preset Frame! This is purely for readability
+--- Creates and returns a preset Frame!
 function ChatSystemCommons:CreateFrame(fromSize : Vector2) : Frame
     local NewFrame = Instance.new("Frame");
 
