@@ -22,6 +22,7 @@ local ChatService
 
 --// Imports
 local ChatEmotes
+local ChatCommons
 local ChatSettings
 
 local TopbarPlus
@@ -45,6 +46,12 @@ local EmoteSyntax
 local ScalingBounds
 local SpacingBounds
 
+local MarkdownEmbeds = {'**', '*', "__", "~"}; -- used for ipairs formatting
+local AbsoluteDisplaySize : number
+
+local SelectionFrame = Instance.new("Frame");
+local CursorFrame = Instance.new("Frame");
+
 --// States
 local isClientMuted : boolean
 local isMouseOnChat : boolean
@@ -55,6 +62,11 @@ local canChatHide : boolean
 local focusLostAt : number
 
 local currentEmoteTrack : string?
+local isHoldingCTRL : boolean?
+
+local LastSavedCursorPosition : number = 0
+local CursorTick : number = os.clock();
+local FocusPoint : number = 0
 
 --// Initialization
 function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes : Instance)
@@ -72,12 +84,78 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
     ChatBox = ChatGUI.FrameChatBox.InputBoxChat
     DisplayLabel = ChatGUI.FrameChatBox.LabelDisplayTypedChat
-    OriginalBoxSize = ChatBox.AbsoluteSize
+
+    AbsoluteDisplaySize = DisplayLabel.AbsoluteSize.X
+
+    --// Selection Frame
+    --\\ This section simulates a "selection box" for our DisplayLabel!
+
+    SelectionFrame.BackgroundColor3 = Color3.fromRGB(106, 159, 248);
+    SelectionFrame.Name = "SelectionFrame"
+    SelectionFrame.BorderSizePixel = 0
+    SelectionFrame.Visible = false
+
+    SelectionFrame.ZIndex = 2
+    SelectionFrame.Parent = DisplayLabel
+
+    CursorFrame.Size = UDim2.fromOffset(1.5, DisplayLabel.AbsoluteSize.Y);
+    CursorFrame.Position = UDim2.fromScale(0, 0.5);
+    CursorFrame.AnchorPoint = Vector2.new(0, 0.5);
+
+    CursorFrame.Name = "CursorFrame"
+    CursorFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+    CursorFrame.BorderSizePixel = 0
+    CursorFrame.ZIndex = 5
+    CursorFrame.Visible = false
+    CursorFrame.Parent = DisplayLabel
+
+    local function updateSelectionBox()
+        local selectionInfo = ChatUI:GetSelected();
+        
+        if (selectionInfo) then
+            SelectionFrame.Size = UDim2.fromOffset(selectionInfo.SelectionSize, DisplayLabel.AbsoluteSize.Y + 4);
+            SelectionFrame.Position = UDim2.fromOffset(selectionInfo.StartPos, 0);
+            SelectionFrame.Visible = true
+        else
+            SelectionFrame.Visible = false
+        end
+    end
+
+    local function updateCursorPos()
+        RunService.RenderStepped:Wait();
+
+        local currentPos = ChatBox.CursorPosition
+
+        if (ChatBox:IsFocused()) then
+            LastSavedCursorPosition = currentPos
+            CursorFrame.Visible = true
+            CursorTick = os.clock();
+        end
+
+        if (currentPos ~= -1) then
+            local textBeforeCursorSize : number = TextService:GetTextSize(
+                ChatBox.Text:sub(0, currentPos - 1),
+                DisplayLabel.TextSize,
+                DisplayLabel.Font,
+                Vector2.new(math.huge, math.huge)
+            );
+            
+            CursorFrame.Position = UDim2.new(0, textBeforeCursorSize.X, 0.5, 0);
+        end
+    end
+
+    ChatBox:GetPropertyChangedSignal("SelectionStart"):Connect(updateSelectionBox);
+    ChatBox:GetPropertyChangedSignal("CursorPosition"):Connect(function()
+        updateSelectionBox();
+        updateTextPosition();
+        updateCursorPos();
+    end)
 
     --// Setup
     local ChatModules = ChatService:GetModules();
 
     ChatEmotes = ChatModules.Emotes
+    ChatCommons = ChatModules.Commons
     ChatSettings = ChatModules.Settings
     EmoteSyntax = ChatSettings.EmoteSyntax
 
@@ -85,13 +163,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
     DisplayLabel.TextSize = ScalingBounds.Y
     ChatBox.TextSize = ScalingBounds.Y
-
-    SpacingBounds = TextService:GetTextSize(
-        " ",
-        ChatBox.UITextSizeConstraint.MaxTextSize,
-        ChatBox.Font,
-        OriginalBoxSize
-    );
 
     if (not Chat:CanUserChatAsync(Player.UserId)) then -- We need to respect client boundries (if any)
         ChatGUI.Visible = false
@@ -138,7 +209,10 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     --\\ Since our method of setting up the chat system is a little hacky, we need an alternate way for Mobile clients to click on the Chatbox!
 
     DisplayLabel.InputBegan:Connect(function(Input)
+        if (ChatBox:IsFocused()) then return; end
+
         if ((Input.UserInputType == Enum.UserInputType.Touch) or (Input.UserInputType == Enum.UserInputType.MouseButton1)) then
+            ChatBox.CursorPosition = LastSavedCursorPosition
             ChatBox:CaptureFocus();
         end
     end);
@@ -169,6 +243,7 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     ChatEvents.ChatMute.OnClientEvent:Connect(function(isMuted : boolean)
         isClientMuted = isMuted
         SetTextBoxVisible(true);
+        LastSavedCursorPosition = 0
 
         if (isMuted) then
             ChatService:MuteClient();
@@ -188,21 +263,25 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         end
 
         game:GetService("RunService").RenderStepped:Wait();
+        ChatBox.CursorPosition = LastSavedCursorPosition
         ChatBox:CaptureFocus();
     end);
 
     ChatBox.FocusLost:Connect(function(enterPressed : boolean)
         canChatHide = (not isMouseOnChat);
         focusLostAt = os.clock();
-
+        
+        CursorFrame.Visible = false
+        
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
             SetTextBoxVisible(true);
-
+            
             return;
         end
-
+        
         if (not enterPressed) then return; end
+        LastSavedCursorPosition = 0
 
         if ((ChatBox.Text:sub(1, 3) == "/w ") and (#ChatBox.Text:split(" ") >= 3)) then
             local TargetUsername = ChatBox.Text:split(" ")[2];
@@ -294,6 +373,92 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         ChatBox.Text = ""
     end);
 
+    --// Rich Text Support
+    UserInputService.InputBegan:Connect(function(input : InputObject)
+        if (not ChatSettings.AllowMarkdown) then return; end
+
+        local richEmbed = (
+            ((input.KeyCode == Enum.KeyCode.B) and ("**")) or -- **bold**
+            ((input.KeyCode == Enum.KeyCode.I) and ("*")) or -- *italic*
+            ((input.KeyCode == Enum.KeyCode.U) and ("__")) or -- __underlined__
+            ((input.KeyCode == Enum.KeyCode.S) and ("~~")) -- s̶t̶r̶i̶k̶e̶-̶t̶h̶r̶o̶u̶g̶h̶
+        );
+
+        local selectedText, startIndex, endIndex = getSelected();
+
+        if (input.KeyCode == Enum.KeyCode.LeftControl) then
+            isHoldingCTRL = true
+        elseif ((isHoldingCTRL) and (richEmbed) and (ChatBox:IsFocused()) and (selectedText)) then
+            local selectionA, selectionB = ChatBox.CursorPosition, ChatBox.SelectionStart
+            local isMarkedDown : boolean
+
+            for _, embedGrapheme in ipairs(MarkdownEmbeds) do -- must loop in order, otherwise we can flag for italics when we have bold md's!
+                isMarkedDown = (
+                    (selectedText:sub(1, embedGrapheme:len()) == embedGrapheme)
+                    and ((selectedText:sub((selectedText:len() - embedGrapheme:len()) + 1)) == embedGrapheme)
+                );
+
+                if (isMarkedDown) then
+                    if (embedGrapheme ~= richEmbed) then
+                        selectedText = string.gsub(
+                            selectedText,
+                            embedGrapheme,
+                            ""
+                        );
+
+                        if (embedGrapheme:len() == richEmbed:len()) then break; end
+
+                        local offsetValue = (
+                            ((embedGrapheme:len() < richEmbed:len()) and (richEmbed:len()))
+                                or (-embedGrapheme:len())
+                        );
+                        
+                        if (selectionA > selectionB) then
+                            selectionA += offsetValue
+                        else
+                            selectionB += offsetValue
+                        end
+                    end
+
+                    break;
+                end
+            end
+
+            local enrichedText = (
+                (isMarkedDown) and (string.gsub(selectedText, richEmbed, ""))
+                    or ((richEmbed)..(selectedText)..(richEmbed))
+            );
+
+            local constructed = string.format("%s%s%s",
+                ChatBox.Text:sub(1, startIndex - 1),
+                enrichedText,
+                ChatBox.Text:sub(endIndex)
+            );
+
+            RunService.RenderStepped:Wait();
+            ChatBox.Text = constructed
+
+            local selectionAlpha = (
+                (isMarkedDown) and (-richEmbed:len() * 2)
+                or (richEmbed:len() * 2)
+            );
+
+            if (selectionA > selectionB) then
+                ChatBox.CursorPosition = (selectionA + selectionAlpha);
+                ChatBox.SelectionStart = selectionB
+            else
+                ChatBox.CursorPosition = selectionA
+                ChatBox.SelectionStart = (selectionB + selectionAlpha);
+            end
+        end
+    end);
+
+    UserInputService.InputEnded:Connect(function(input : InputObject)
+        if (input.KeyCode == Enum.KeyCode.LeftControl) then
+            isHoldingCTRL = false
+        end
+    end);
+
     --// Box Handling
     ChatBox:GetPropertyChangedSignal("Text"):Connect(function()
 
@@ -337,37 +502,15 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
             NewMaskingText = ((NewMaskingText)..(" ")); -- We need to add spacing between words!
         end
 
-        DisplayLabel.Text = NewMaskingText
+        DisplayLabel.Text = ChatCommons:MarkdownAsync(NewMaskingText, true);
+        CursorTick = os.clock();
 
-        --// Masking layer text handling
-        --\\ This is done because our text tends to go off screen if we dont do this. This is more of an instance hacky tactic
-
-        local CurrentBounds = TextService:GetTextSize(
-            ChatBox.Text,
-            ScalingBounds.Y,
-            ChatBox.Font,
-            Vector2.new(4000, 4000)
-        );
-
-        if ((CurrentBounds.X + SpacingBounds.X) >= ChatBox.AbsoluteSize.X) then
-            DisplayLabel.TextXAlignment = Enum.TextXAlignment.Right
-            ChatBox.TextXAlignment = Enum.TextXAlignment.Right
-
-            DisplayLabel.TextScaled = false
-            DisplayLabel.TextWrapped = false
-
-            ChatBox.TextScaled = false
-            ChatBox.TextWrapped = false
-        else
-            DisplayLabel.TextXAlignment = Enum.TextXAlignment.Left
-            ChatBox.TextXAlignment = Enum.TextXAlignment.Left
-
-            DisplayLabel.TextScaled = true
-            DisplayLabel.TextWrapped = true
-
-            ChatBox.TextScaled = true
-            ChatBox.TextWrapped = true
+        if (ChatBox:IsFocused()) then
+            CursorFrame.Visible = true
         end
+
+        updateCursorPos();
+        updateTextPosition();
 
     end);
 
@@ -378,6 +521,9 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
         SetTextBoxVisible(false);
         SetChatHidden(false);
+
+        updateTextPosition();
+        updateCursorPos();
     end);
     
     ChatGUI.MouseEnter:Connect(function()
@@ -397,6 +543,11 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     end);
 
     RunService.RenderStepped:Connect(function()
+        if (((os.clock() - CursorTick) >= 0.5) and (isBoxHidden) and (ChatBox:IsFocused())) then
+            CursorTick = os.clock();
+            CursorFrame.Visible = not CursorFrame.Visible
+        end
+
         if (not canChatHide) then return; end
         if (ChatBox:IsFocused()) then return; end
         if ((os.clock() - focusLostAt) < ChatSettings.DormantLifespan) then return; end
@@ -436,6 +587,7 @@ function ChatUI:SetText(desiredText : string)
     ChatBox.PlaceholderText = ""
     ChatBox.Text = desiredText
 
+    ChatBox.CursorPosition = LastSavedCursorPosition
     ChatBox:CaptureFocus();
     SetTextBoxVisible(false);
 end
@@ -445,11 +597,9 @@ function ChatUI:GetSelected()
     if ((ChatBox.CursorPosition == -1) or (ChatBox.SelectionStart == -1)) then return; end
     
     local selectionStart : number = math.min(ChatBox.CursorPosition, ChatBox.SelectionStart);
-    local selectionEnd : number = math.max(ChatBox.CursorPosition, ChatBox.SelectionStart);
+    local selectionEnd : number = math.max(ChatBox.CursorPosition, ChatBox.SelectionStart) - 1;
 
-    print(selectionStart, selectionEnd)
-
-    local priorText : string = ChatBox.Text:sub(1, selectionStart - 1);
+    local priorText : string = ChatBox.Text:sub(0, selectionStart - 1);
     local afterText : string = ChatBox.Text:sub(selectionEnd + 1);
 
     local priorTextSize : number = TextService:GetTextSize(
@@ -474,8 +624,8 @@ function ChatUI:GetSelected()
     );
 
     return {
-        ["StartPos"] = priorTextSize.X % ChatBox.AbsoluteSize.X,
-        ["EndPos"] = (ChatBox.TextBounds.X - afterTextSize.X) % ChatBox.AbsoluteSize.X,
+        ["StartPos"] = priorTextSize.X,
+        ["EndPos"] = ChatBox.TextBounds.X - afterTextSize.X,
 
         ["SelectionSize"] = absSelectionSize,
         ["Text"] = selectedText
@@ -487,12 +637,13 @@ end
 --- Sets the visibility of our masking label based on the provided boolean parameter
 function SetTextBoxVisible(isEnabled : boolean)
     isBoxHidden = (not isEnabled);
+    CursorFrame.Visible = isBoxHidden
 
     if (isEnabled) then
         ChatBox.TextTransparency = ChatSettings.TextTransparency
         ChatBox.TextStrokeTransparency = ChatSettings.TextStrokeTransparency
     else
-        ChatBox.TextTransparency = .5
+        ChatBox.TextTransparency = 1
         ChatBox.TextStrokeTransparency = 1
     end
 end
@@ -569,6 +720,23 @@ function GetFlatColor(OriginalColor : number)
     return math.floor(OriginalColor * 255);
 end
 
+--- Returns the currently selected TextBox text (if any)
+function getSelected() : string | number | number
+	if ((ChatBox.CursorPosition == -1) or (ChatBox.SelectionStart == -1)) then return; end
+    
+    local startPos : number = math.min(ChatBox.CursorPosition, ChatBox.SelectionStart);
+    local endPos : number = math.max(ChatBox.CursorPosition, ChatBox.SelectionStart);
+
+    local selectedText : string = string.sub(
+        ChatBox.Text,
+        startPos,
+        endPos - 1
+    );
+
+    return selectedText, startPos, endPos
+end
+
+--- Picks a random dance emote! (simulates roblox chat behavior)
 function pickRandomDanceEmote(RigType : Enum.HumanoidRigType) : string
     local contenders = {
         CustomEmoteList["dance1"][RigType],
@@ -577,6 +745,78 @@ function pickRandomDanceEmote(RigType : Enum.HumanoidRigType) : string
     };
 
     return contenders[math.random(#contenders)];
+end
+
+--- Updates our DisplayLabel position which respects cursorPosition following!
+function updateTextPosition()
+    local CursorPosition = ChatBox.CursorPosition
+    local AbsX = math.floor(ChatBox.Parent.AbsoluteSize.X);
+    local Padding = 5
+
+    if (CursorPosition ~= -1) then -- Make sure we have a valid cursor position
+        local TotalWidth = TextService:GetTextSize(
+            ChatBox.Text,
+            ChatBox.TextSize,
+            ChatBox.Font,
+            Vector2.new(math.huge, math.huge)
+        ).X
+
+        local CursorWidth = TextService:GetTextSize(
+            ChatBox.Text:sub(1, CursorPosition - 1),
+            ChatBox.TextSize,
+            ChatBox.Font,
+            Vector2.new(math.huge, math.huge)
+        ).X
+
+        local WidthOffset = (((FocusPoint + AbsX) + Padding + 2) - CursorWidth);
+
+        local IsOffScreenOnLeft = ((TotalWidth >= AbsX / 2) and (AbsX < WidthOffset));
+        local IsOffScreenOnRight = (CursorWidth > FocusPoint + AbsX);
+        local IsOffScreen = (IsOffScreenOnLeft or IsOffScreenOnRight);
+
+        local CurrentCursorPos = (ChatBox.Position.X.Offset + CursorWidth);
+
+        --[[
+
+            warn("-------------------------------------------------------------");
+            print("OFF:", IsOffScreen);
+            print("RIGHT:", IsOffScreenOnRight);
+            print("LEFT:", IsOffScreenOnLeft);
+            print("WIDTH OFFSET:", WidthOffset);
+            print("FOCUS POINT:", FocusPoint);
+            print("CURSOR WIDTH:", CursorWidth);
+
+        ]]--
+        
+        if ((CurrentCursorPos < Padding) and (not IsOffScreen)) then
+            DisplayLabel.Position = UDim2.new(0, Padding, 0.5, 0);
+            DisplayLabel.Size = UDim2.new(0.98, 0, 0.8, 0);
+            
+            FocusPoint = 0
+        elseif (IsOffScreen) then
+            if (IsOffScreenOnLeft) then
+                local LetterPos = (
+                    (CursorPosition > 0) and (CursorPosition - 1)
+                    or (CursorPosition + 2)
+                );
+
+                local ChangeWidth = TextService:GetTextSize(
+                    ChatBox.Text:sub(LetterPos, LetterPos),
+                    ChatBox.TextSize,
+                    ChatBox.Font,
+                    Vector2.new(math.huge, math.huge)
+                ).X
+
+                FocusPoint = math.max(FocusPoint - ChangeWidth,  0)
+                DisplayLabel.Position = UDim2.new(0, -CursorWidth + Padding, 0.5, 0);
+            elseif (IsOffScreenOnRight) then
+                FocusPoint = math.max(CursorWidth - AbsX, 0);
+
+                DisplayLabel.Size = UDim2.new(0, AbsoluteDisplaySize + math.max(TotalWidth - AbsX, 0), 0.8, 0); -- We need to constantly grow our DisplayLabel in order to keep the system functional
+                DisplayLabel.Position = UDim2.new(0, AbsX - CursorWidth - Padding - 2, 0.5, 0);
+            end
+        end
+    end
 end
 
 return ChatUI
