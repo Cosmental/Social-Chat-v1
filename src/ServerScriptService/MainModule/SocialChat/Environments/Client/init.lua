@@ -107,12 +107,13 @@ local TweenService = game:GetService("TweenService");
 local RunService = game:GetService("RunService");
 
 --// Imports
+local Configurations = game.ReplicatedStorage.SocialChatConfigurations.Client
 local ChatUI = require(script.ChatUI);
 
-local ChatSystemTags = require(script.Modules.ChatSystemTags);
-local ChatSystemEmotes = require(script.Modules.ChatSystemEmotes);
+local ChatSystemTags = require(Configurations.ChatSystemTags);
+local ChatSystemEmotes = require(Configurations.ChatSystemEmotes);
 local ChatSystemCommons = require(script.Modules.ChatSystemCommons);
-local ChatSystemConfigurations = require(script.Modules.ChatSystemConfigurations);
+local ChatSystemConfigurations = require(Configurations.ChatSystemConfigurations);
 
 --// Constants
 local Player = game.Players.LocalPlayer

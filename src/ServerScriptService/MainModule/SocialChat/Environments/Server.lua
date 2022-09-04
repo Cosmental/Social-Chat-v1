@@ -42,8 +42,10 @@ local TextService = game:GetService("TextService");
 local RunService = game:GetService("RunService");
 
 --// Imports
-local ChatSystemTags = require(script.Tags);
-local ChatSystemSettings = require(script.Settings);
+local Configurations = game.ReplicatedStorage.SocialChatConfigurations.Server
+
+local ChatSystemTags = require(Configurations.Tags);
+local ChatSystemSettings = require(Configurations.Settings);
 
 --// Constants
 local _chatEv = Instance.new("BindableEvent");

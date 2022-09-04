@@ -14,8 +14,10 @@ local ChatSystemCommons = {};
 local TextService = game:GetService("TextService");
 
 --// Imports
-local ChatSystemConfigurations = require(script.Parent.ChatSystemConfigurations);
-local ChatSystemTags = require(script.Parent.ChatSystemTags);
+local Configurations = game.ReplicatedStorage.SocialChatConfigurations.Client
+
+local ChatSystemConfigurations = require(Configurations.ChatSystemConfigurations);
+local ChatSystemTags = require(Configurations.ChatSystemTags);
 local ChatSystemEmotes
 
 --// Constants
@@ -68,7 +70,7 @@ function ChatSystemCommons:Init()
     );
 
     ChatSystemCommons.SpaceLength = ChatSystemCommons:GetTextSize(" ", ChatFrame);
-    ChatSystemEmotes = require(script.Parent.ChatSystemEmotes)();
+	ChatSystemEmotes = require(Configurations.ChatSystemEmotes)();
 end
 
 --// Common Methods
