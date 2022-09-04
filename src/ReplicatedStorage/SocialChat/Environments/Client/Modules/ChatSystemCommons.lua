@@ -164,59 +164,86 @@ function ChatSystemCommons:ApplyEmoji(ImageObject : Instance, Emote : string) : 
     end
 end
 
---- Formats our Markdown text into rich or plain text!
+--- Formats our Markdown text into rich or plain text
 function ChatSystemCommons:MarkdownAsync(text : string, keepMarkdownOperators : boolean?) : string
-    local movement = 0
-    local data = {};
-
-	for _, markdownData in ipairs(MarkdownFormatting) do
-        local formattedOperator = string.format(OperatorFormatting, markdownData.operator);
+    for _, markdownData in ipairs(MarkdownFormatting) do
+		local formattedOperator = string.format(OperatorFormatting, markdownData.operator);
+		local movement = 0
 
 		repeat
 			local starts, ends, plainTxt = string.find(" "..text, markdownData.query, movement); -- The regex we are using requires at least one space to work
 
-            local isEmpty : boolean = ((plainTxt) and (plainTxt:find("^%s*$")));
-            local isRich : boolean = (
-                (starts and ends)
-                    and (text:sub(starts - 1, starts - 1) == ">")
-                    and (text:sub(ends, ends) == "<")
-            );
+			local isEmpty : boolean = ((plainTxt) and (plainTxt:find("^%s*$")));
+			local isRich : boolean = (
+				(starts and ends)
+					and (text:sub(starts - 1, starts - 1) == ">")
+					and (text:sub(ends, ends) == "<")
+			);
 
 			if (((starts and ends) and (not isEmpty)) and (not isRich)) then -- Make sure our regex starts and ends somewhere AND isnt just whitetext
-                local replacementText = (
-                    ((keepMarkdownOperators) and string.format(markdownData.format, (formattedOperator..plainTxt..formattedOperator)))
-                    or (string.format(markdownData.format, plainTxt))
-                );
-            
-                text = (
-                    text:sub(1, starts - 1)..
-                    replacementText..
-                    (text:sub(ends))
-                );
+				local replacementText = (
+					((keepMarkdownOperators) and string.format(markdownData.format, (formattedOperator..plainTxt..formattedOperator)))
+						or (string.format(markdownData.format, plainTxt))
+				);
 
-                table.insert(data, {
-                    ["Text"] = plainTxt,
-                    ["Meta"] = markdownData,
+				text = (
+					text:sub(1, starts - 1)..
+						replacementText..
+						(text:sub(ends))
+				);
 
-                    ["Indexing"] = {
-                        ["Starts"] = starts - movement,
-                        ["Ends"] = ends - movement
-                    },
-                });
-
-                if (keepMarkdownOperators) then
-                    movement += ((starts - movement) + (markdownData.format:len() - 2) + (formattedOperator:len() * 2) + plainTxt:len());
-                else
-                    movement += ((starts - movement) + (markdownData.format:len() - 2) + plainTxt:len());
-                end
-            elseif (isEmpty or isRich) then
-                movement += markdownData.operator:len();
+				if (keepMarkdownOperators) then
+					movement += ((starts - movement) + (markdownData.format:len() - 2) + (formattedOperator:len() * 2) + plainTxt:len());
+				else
+					movement += ((starts - movement) + (markdownData.format:len() - 2) + plainTxt:len());
+				end
+			elseif (isEmpty or isRich) then
+				movement += markdownData.operator:len();
 			end
 		until
 		((not starts or not ends));
 	end
-    
-	return text, data
+
+	return text
+end
+
+--- Returns a table which contains markdown data that can be used for additional API usage [READ ONLY]
+function ChatSystemCommons:GetMarkdownDataAsync(text : string) : table
+    local data = {};
+	
+	for _, markdownData in ipairs(MarkdownFormatting) do
+		local movement = 0
+		
+		repeat
+			local starts, ends, plainTxt = string.find(" "..text, markdownData.query, movement); -- The regex we are using requires at least one space to work
+
+			local isEmpty : boolean = ((plainTxt) and (plainTxt:find("^%s*$")));
+			local isRich : boolean = (
+				(starts and ends)
+					and (text:sub(starts - 1, starts - 1) == ">")
+					and (text:sub(ends, ends) == "<")
+			);
+
+			if (((starts and ends) and (not isEmpty)) and (not isRich)) then -- Make sure our regex starts and ends somewhere AND isnt just whitetext
+				movement += ((starts - movement) + plainTxt:len());
+				
+				table.insert(data, {
+					["Text"] = plainTxt,
+					["Meta"] = markdownData,
+
+					["Indexing"] = {
+						["Starts"] = starts,
+						["Ends"] = ends
+					},
+				});
+			elseif (isEmpty or isRich) then
+				movement += markdownData.operator:len();
+			end
+		until
+		((not starts or not ends));
+	end
+
+	return data
 end
 
 --// INSTANCING

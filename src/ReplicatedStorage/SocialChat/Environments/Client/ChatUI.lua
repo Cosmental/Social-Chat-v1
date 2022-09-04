@@ -37,16 +37,13 @@ local ChatFrame
 local ChatBox
 local DisplayLabel
 
-local OriginalBoxSize
-local RichTextFormat = "<font color =\"rgb(%s, %s, %s)\">%s</font>"
-
 local CustomEmoteList = {};
 local EmoteSyntax
 
-local ScalingBounds
-local SpacingBounds
-
 local MarkdownEmbeds = {'**', '*', "__", "~"}; -- used for ipairs formatting
+local RichTextFormat = "<font color =\"rgb(%s, %s, %s)\">%s</font>"
+
+local CurrentFontSize : number
 local AbsoluteDisplaySize : number
 
 local SelectionFrame = Instance.new("Frame");
@@ -84,8 +81,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
     ChatBox = ChatGUI.FrameChatBox.InputBoxChat
     DisplayLabel = ChatGUI.FrameChatBox.LabelDisplayTypedChat
-
-    AbsoluteDisplaySize = DisplayLabel.AbsoluteSize.X
 
     --// Selection Frame
     --\\ This section simulates a "selection box" for our DisplayLabel!
@@ -135,7 +130,7 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         if (currentPos ~= -1) then
             local textBeforeCursorSize : number = TextService:GetTextSize(
                 ChatBox.Text:sub(0, currentPos - 1),
-                DisplayLabel.TextSize,
+                CurrentFontSize,
                 DisplayLabel.Font,
                 Vector2.new(math.huge, math.huge)
             );
@@ -159,10 +154,11 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     ChatSettings = ChatModules.Settings
     EmoteSyntax = ChatSettings.EmoteSyntax
 
-    ScalingBounds = ChatBox.TextBounds
+    CurrentFontSize = math.min(ChatBox.AbsoluteSize.Y, ChatSettings.ChatBoxFontSize);
+    AbsoluteDisplaySize = DisplayLabel.AbsoluteSize.X
 
-    DisplayLabel.TextSize = ScalingBounds.Y
-    ChatBox.TextSize = ScalingBounds.Y
+    ChatBox.TextSize = CurrentFontSize
+    DisplayLabel.TextSize = CurrentFontSize
 
     if (not Chat:CanUserChatAsync(Player.UserId)) then -- We need to respect client boundries (if any)
         ChatGUI.Visible = false
@@ -368,13 +364,14 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
                     }
                 );
             end
-        elseif (ChatBox.Text:lower() == "/console") then
+        elseif (ChatBox.Text == "/console") then
             game.StarterGui:SetCore("DevConsoleVisible", true);
         else
             ChatEvents.ChatReplicate:FireServer(ChatBox.Text);
         end
         
         ChatBox.PlaceholderText = "Type '/' to chat"
+        SetTextBoxVisible(true);
         ChatBox.Text = ""
     end);
 
@@ -507,7 +504,11 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
             NewMaskingText = ((NewMaskingText)..(" ")); -- We need to add spacing between words!
         end
 
-        DisplayLabel.Text = ChatCommons:MarkdownAsync(NewMaskingText, true);
+        DisplayLabel.Text = (
+            (ChatSettings.AllowMarkdown) and (ChatCommons:MarkdownAsync(NewMaskingText, true))
+                or (NewMaskingText)
+        );
+
         CursorTick = os.clock();
 
         if (ChatBox:IsFocused()) then
@@ -589,7 +590,7 @@ function ChatUI:SetText(desiredText : string)
     ChatBox.PlaceholderText = ""
     ChatBox.Text = desiredText
 
-    ChatBox.CursorPosition = LastSavedCursorPosition
+    ChatBox.CursorPosition = desiredText:len();
     SetTextBoxVisible(false);
     SetChatHidden(false);
 
@@ -608,14 +609,14 @@ function ChatUI:GetSelected()
 
     local priorTextSize : number = TextService:GetTextSize(
         priorText,
-        DisplayLabel.TextSize,
+        CurrentFontSize,
         DisplayLabel.Font,
         Vector2.new(math.huge, math.huge)
     );
 
     local afterTextSize = TextService:GetTextSize(
         afterText,
-        DisplayLabel.TextSize,
+        CurrentFontSize,
         DisplayLabel.Font,
         Vector2.new(math.huge, math.huge)
     );

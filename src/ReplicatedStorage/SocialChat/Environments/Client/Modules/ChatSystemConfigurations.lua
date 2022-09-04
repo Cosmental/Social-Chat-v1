@@ -12,6 +12,8 @@ return {
 	--// TEXT BOX CONFIGURATIONS
 
 	["TextBoxHighlightingEnabled"] = true, -- Determines if the chat textbox will highlight keywords/phrases (opt.)
+	["ChatBoxFontSize"] = 15, -- Determines the maximum scalable fontSize for our TextBox. (this will fit into smaller screens as well!)
+
 	["HighlightConfigurations"] = {
 		["EmoteHighlightColor"] = Color3.fromRGB(255, 255, 0),
 		["UsernameHighlightColor"] = Color3.fromRGB(90, 215, 255),

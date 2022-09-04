@@ -339,6 +339,7 @@ function SocialChat:CreateChatMessage(speaker : string | Player, message : strin
         TweenFrame.Position = UDim2.fromOffset(-25, 10);
         TweenFrame.Size = UDim2.fromScale(1, 1);
         TweenFrame.Name = "MessageTweenFrame"
+        TweenFrame.ClipsDescendants = false
 
         local TextObjectProperties = {
             TextTransparency = ChatSystemConfigurations.TextTransparency,
@@ -402,6 +403,7 @@ function SocialChat:CreateChatMessage(speaker : string | Player, message : strin
         };
     });
 
+    ClientMessageFrame.ClipsDescendants = false
     ClientMessageFrame.Parent = ChatFrame
 
     --// Message Cleanup
@@ -697,6 +699,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
 
     ]]--
 
+    local MarkdownInfo = ChatSystemCommons:GetMarkdownDataAsync(text);
     local EmoteCollection = {};
     local RenderedObjects = {};
 
@@ -707,9 +710,11 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
     local TotalScaleX = ((additionalXSpace) or (0));
     local TotalScaleY = 0
 
-    for _, Word in pairs(text:split(" ")) do
+    for Index, Word in pairs(text:split(" ")) do
         local isEmote = ((Word:sub(1, 1) == EmoteSyntax) and (Word:sub(#Word, #Word) == EmoteSyntax));
         local emoteName = (Word:sub(2, #Word - 1));
+
+        local IsMarkedDown, MarkdownData = GetMarkdownInfoAsync(Index, text, MarkdownInfo);
 
         if (ChatSystemConfigurations.DebugOutputEnabled) then
             print("\n\nSOCIALCHAT DEBUG: RENDERING WORD \""..(Word).."\".\n\t\t\t\t\t\t\t\t\tTextScaleX:", TotalScaleX, "\n\t\t\t\t\t\t\t\t\tTextScaleY:", TotalScaleY, "\n\n");
@@ -801,7 +806,12 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
                 TotalScaleY += SpaceLength.Y
             end
 
-            ShrugLabel.Text = "¯\\_(ツ)_/¯"
+            if ((IsMarkedDown) and (ChatSystemConfigurations.AllowMarkdown)) then
+                ShrugLabel.Text = string.format(MarkdownData.format, "¯\\_(ツ)_/¯");
+            else
+                ShrugLabel.Text = "¯\\_(ツ)_/¯"
+            end
+            
             ShrugLabel.Name = "WordLabel_Shrug"
             ShrugLabel.Position = UDim2.fromOffset(TotalScaleX, TotalScaleY);
 
@@ -828,6 +838,7 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
 
             for _, codepoint in utf8.codes(Word) do
                 local Grapheme = utf8.char(codepoint);
+                if ((Grapheme == "*" or Grapheme == "_" or Grapheme == "~") and (ChatSystemConfigurations.AllowMarkdown) and (IsMarkedDown)) then continue; end
 
                 local GraphemeSize = ChatSystemCommons:GetTextSize(Grapheme, container, false, ((parameters) and (parameters.chatMeta)));
                 local GraphemeLabel = ChatSystemCommons:CreateLabel(GraphemeSize);
@@ -837,7 +848,12 @@ function SocialChat:RenderText(text : string, container : Instance, metadata : t
                     GraphemePosY += SpaceLength.Y
                 end
 
-                GraphemeLabel.Text = Grapheme
+                if ((IsMarkedDown) and (ChatSystemConfigurations.AllowMarkdown)) then
+                    GraphemeLabel.Text = string.format(MarkdownData.format, Grapheme);
+                else
+                    GraphemeLabel.Text = Grapheme
+                end
+
                 GraphemeLabel.Name = "Grapheme_"..(Grapheme);
                 GraphemeLabel.Position = UDim2.fromOffset(GraphemePosX, GraphemePosY);
 
@@ -900,6 +916,7 @@ function SocialChat:GetModules() : table
     return {
         ["Tags"] = ChatSystemTags,
         ["Emotes"] = ChatSystemEmotes,
+        ["Commons"] = ChatSystemCommons,
         ["Settings"] = ChatSystemConfigurations,
         ["VERSION"] = require(script.Modules.VERSION)
     };
@@ -1043,6 +1060,7 @@ function DestroyBubble(BubbleObject : Instance)
     end
 
     local BubbleGarbage = BubbleObject.GarbageCollection.LabelCollection
+    if (not BubbleGarbage) then return; end
 
     ChatSystemTags[BubbleGarbage.EffectName].OnRemoved(BubbleGarbage.Effect);
     BubbleObject.MessageFrame:Destroy();
@@ -1087,6 +1105,37 @@ function SetupBubbleChat(Agent : Model)
 
     task.wait(.1); -- New Chat Bubbles need some time to resize and fit their new containers
     return NewContainer
+end
+
+--- Returns a boolean which tells us if the provided text should be marked down
+function GetMarkdownInfoAsync(wordIndex : number, fullText : string, markdownMeta : table) : boolean?
+    if (not next(markdownMeta)) then return; end
+    
+    local StartIndex = 1
+    local EndIndex = 0
+    local MarkedText : string?
+
+    for Index, Word in pairs(fullText:split(" ")) do
+        if (Index == wordIndex) then
+            MarkedText = Word
+            break;
+        end
+
+        StartIndex += (Word:len() + 1);
+    end
+
+    if (not MarkedText) then return; end
+    EndIndex = (StartIndex + MarkedText:len());
+
+    for _, markdownData in pairs(markdownMeta) do
+        local IsMarkedDown = (
+            (EndIndex <= markdownData.Indexing.Ends)
+            and (StartIndex >= markdownData.Indexing.Starts)
+        );
+
+        if (not IsMarkedDown) then continue; end
+        return true, markdownData.Meta
+    end
 end
 
 return SocialChat
