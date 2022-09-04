@@ -660,11 +660,6 @@ function SetChatHidden(setHidden : boolean)
             BackgroundTransparency = 1
         }):Play();
 
-        TweenService:Create(ChatBox, TweenInfo.new(0.5), {
-            TextTransparency = 1,
-            TextStrokeTransparency = 1
-        }):Play();
-
         TweenService:Create(DisplayLabel, TweenInfo.new(0.5), {
             TextTransparency = 1,
             TextStrokeTransparency = 1
@@ -683,11 +678,6 @@ function SetChatHidden(setHidden : boolean)
 
         TweenService:Create(ChatGUI.FrameChatBox, TweenInfo.new(0.5), {
             BackgroundTransparency = ChatSettings.ChatBoxBackgroundTransparency
-        }):Play();
-
-        TweenService:Create(ChatBox, TweenInfo.new(0.5), {
-            TextTransparency = ((((ChatBox.Text:len() > 0) or (isBoxHidden)) and (1)) or (ChatSettings.TextTransparency)),
-            TextStrokeTransparency = ((((ChatBox.Text:len() > 0) or (isBoxHidden)) and (1)) or (ChatSettings.TextStrokeTransparency))
         }):Play();
 
         TweenService:Create(DisplayLabel, TweenInfo.new(0.5), {
