@@ -279,10 +279,10 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         focusLostAt = os.clock();
         
         CursorFrame.Visible = false
-        SetTextBoxVisible(true);
         
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
+            SetTextBoxVisible(true);
             return;
         end
         

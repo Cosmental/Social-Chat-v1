@@ -166,13 +166,15 @@ end
 
 --- Formats our Markdown text into rich or plain text!
 function ChatSystemCommons:MarkdownAsync(text : string, keepMarkdownOperators : boolean?) : string
+    local movement = 0
+    local data = {};
+
 	for _, markdownData in ipairs(MarkdownFormatting) do
         local formattedOperator = string.format(OperatorFormatting, markdownData.operator);
-        local movement = 0
 
 		repeat
 			local starts, ends, plainTxt = string.find(" "..text, markdownData.query, movement); -- The regex we are using requires at least one space to work
-            
+
             local isEmpty : boolean = ((plainTxt) and (plainTxt:find("^%s*$")));
             local isRich : boolean = (
                 (starts and ends)
@@ -192,7 +194,21 @@ function ChatSystemCommons:MarkdownAsync(text : string, keepMarkdownOperators : 
                     (text:sub(ends))
                 );
 
-                movement += (starts + markdownData.format:len() + (formattedOperator:len() * 2) + plainTxt:len());
+                table.insert(data, {
+                    ["Text"] = plainTxt,
+                    ["Meta"] = markdownData,
+
+                    ["Indexing"] = {
+                        ["Starts"] = starts - movement,
+                        ["Ends"] = ends - movement
+                    },
+                });
+
+                if (keepMarkdownOperators) then
+                    movement += ((starts - movement) + (markdownData.format:len() - 2) + (formattedOperator:len() * 2) + plainTxt:len());
+                else
+                    movement += ((starts - movement) + (markdownData.format:len() - 2) + plainTxt:len());
+                end
             elseif (isEmpty or isRich) then
                 movement += markdownData.operator:len();
 			end
@@ -200,7 +216,7 @@ function ChatSystemCommons:MarkdownAsync(text : string, keepMarkdownOperators : 
 		((not starts or not ends));
 	end
     
-	return text
+	return text, data
 end
 
 --// INSTANCING
@@ -217,6 +233,7 @@ function ChatSystemCommons:CreateLabel(fromSize : Vector2, CustomFont : Enum.Fon
         NewLabel.BackgroundTransparency = 1
     end
 
+    NewLabel.RichText = true
     NewLabel.TextStrokeTransparency = 0.8
     NewLabel.TextColor3 = Color3.fromRGB(255, 255, 255);
     NewLabel.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
@@ -239,6 +256,7 @@ function ChatSystemCommons:CreateButton(fromSize : Vector2, CustomFont : Enum.Fo
         NewButton.BackgroundTransparency = 1
     end
 
+    NewButton.RichText = true
     NewButton.TextStrokeTransparency = 0.8
     NewButton.TextColor3 = Color3.fromRGB(255, 255, 255);
     NewButton.Size = UDim2.fromOffset(fromSize.X, fromSize.Y);
