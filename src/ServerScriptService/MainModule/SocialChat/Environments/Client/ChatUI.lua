@@ -205,8 +205,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     --\\ Since our method of setting up the chat system is a little hacky, we need an alternate way for Mobile clients to click on the Chatbox!
 
     DisplayLabel.InputBegan:Connect(function(Input)
-        if (ChatBox:IsFocused()) then return; end
-
         if ((Input.UserInputType == Enum.UserInputType.Touch) or (Input.UserInputType == Enum.UserInputType.MouseButton1)) then
             ChatBox.CursorPosition = LastSavedCursorPosition
             SetTextBoxVisible(false);
