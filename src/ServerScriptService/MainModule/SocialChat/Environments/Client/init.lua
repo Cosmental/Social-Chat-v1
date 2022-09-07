@@ -110,6 +110,7 @@ local RunService = game:GetService("RunService");
 local Configurations = game.ReplicatedStorage.SocialChatConfigurations.Client
 local ChatUI = require(script.ChatUI);
 
+local __version = require(script.Modules.VERSION);
 local ChatSystemTags = require(Configurations.ChatSystemTags);
 local ChatSystemEmotes = require(Configurations.ChatSystemEmotes);
 local ChatSystemCommons = require(script.Modules.ChatSystemCommons);
@@ -233,7 +234,7 @@ function SocialChat:Init(ChatUtilities : table, Remotes : Instance)
                     ------------------------------------------------------------------------------------------------------------
                     ------------------------------------------------------------------------------------------------------------
 
-                    This game uses Cosmental's SocialChat module!
+                    This game uses Cosmental's SocialChat ]]..(__version)..[[ module!
                     
                     Do you want your games to have a similar Chat System? Grab your copy here!									
                     >> [https://github.com/Cosmental/Social-Chat] <<

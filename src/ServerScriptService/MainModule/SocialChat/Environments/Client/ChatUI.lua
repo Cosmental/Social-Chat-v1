@@ -240,7 +240,9 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     ChatEvents.ChatMute.OnClientEvent:Connect(function(isMuted : boolean)
         isClientMuted = isMuted
         SetTextBoxVisible(true);
+
         LastSavedCursorPosition = 0
+        FocusPoint = 0
 
         if (isMuted) then
             ChatService:MuteClient();
@@ -370,7 +372,9 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         
         ChatBox.PlaceholderText = "Type '/' to chat"
         SetTextBoxVisible(true);
+
         ChatBox.Text = ""
+        FocusPoint = 0
     end);
 
     --// Rich Text Support
@@ -640,6 +644,15 @@ end
 --- Sets the visibility of our masking label based on the provided boolean parameter
 function SetTextBoxVisible(isEnabled : boolean)
     isBoxHidden = (not isEnabled);
+
+    if (not isEnabled) then
+        ChatBox.TextTransparency = 1
+        ChatBox.TextStrokeTransparency = 1
+    else
+        ChatBox.TextTransparency = ChatSettings.TextTransparency
+        ChatBox.TextStrokeTransparency = ChatSettings.TextStrokeTransparency
+    end
+
     ChatBox.Visible = isEnabled
     CursorFrame.Visible = isBoxHidden
 end
