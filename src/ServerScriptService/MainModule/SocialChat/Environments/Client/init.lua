@@ -1062,7 +1062,7 @@ function DestroyBubble(BubbleObject : Instance)
     end
 
     local BubbleGarbage = BubbleObject.GarbageCollection.LabelCollection
-    if (not BubbleGarbage) then return; end
+    if ((not BubbleGarbage) or (not next(BubbleGarbage))) then return; end
 
     ChatSystemTags[BubbleGarbage.EffectName].OnRemoved(BubbleGarbage.Effect);
     BubbleObject.MessageFrame:Destroy();
