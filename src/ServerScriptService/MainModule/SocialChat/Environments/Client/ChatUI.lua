@@ -93,7 +93,6 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
     SelectionFrame.ZIndex = 2
     SelectionFrame.Parent = DisplayLabel
 
-    CursorFrame.Size = UDim2.fromOffset(1.5, DisplayLabel.AbsoluteSize.Y);
     CursorFrame.Position = UDim2.fromScale(0, 0.5);
     CursorFrame.AnchorPoint = Vector2.new(0, 0.5);
 
@@ -159,6 +158,7 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
 
     ChatBox.TextSize = CurrentFontSize
     DisplayLabel.TextSize = CurrentFontSize
+    CursorFrame.Size = UDim2.fromOffset(1.5, CurrentFontSize + 2);
 
     if (not Chat:CanUserChatAsync(Player.UserId)) then -- We need to respect client boundries (if any)
         ChatGUI.Visible = false
@@ -275,7 +275,8 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         focusLostAt = os.clock();
         
         CursorFrame.Visible = false
-        
+        ChatBox:ReleaseFocus();
+
         if (ChatBox.Text:len() == 0) then
             ChatBox.PlaceholderText = "Type '/' to chat"
             SetTextBoxVisible(true);
