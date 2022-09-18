@@ -270,7 +270,7 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
         ChatBox:CaptureFocus();
     end);
 
-    ChatBox.FocusLost:Connect(function(enterPressed : boolean)
+    ChatBox.FocusLost:Connect(function(enterPressed : boolean, focusLoseReason : InputObject? )
         canChatHide = (not isMouseOnChat);
         focusLostAt = os.clock();
         
