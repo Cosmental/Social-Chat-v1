@@ -282,6 +282,14 @@ function ChatUI:Init(ChatController : table, ChatUtilities : table, ChatRemotes 
             SetTextBoxVisible(true);
             return;
         end
+			
+		if (focusLoseReason and focusLoseReason.KeyCode == Enum.KeyCode.Escape) then
+			LastSavedCursorPosition = 0
+			SetTextBoxVisible(true);
+			ChatBox.PlaceholderText = "Type '/' to chat"
+			ChatBox.Text = ""
+			FocusPoint = 0
+		end
         
         if (not enterPressed) then return; end
         LastSavedCursorPosition = 0
